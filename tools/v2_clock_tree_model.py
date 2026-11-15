@@ -16,6 +16,7 @@ from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_LITTLE_ENDIAN
 from capstone.arm import ARM_OP_IMM
 
 from mcu_fingerprint import decoded_payload
+from v2_scatterload_decode import inspect_tables
 
 BASE = 0x08001000
 # Verified V2 addresses. Identical content in another firmware is not assumed.
@@ -34,11 +35,6 @@ CLOCK_CONSTANTS = {
     "prescaler_table_in_sram": 0x08030CD0,
     "reset_cfg_mask": 0x08032420,
 }
-# Valid only when RAM lookup table retains the standard prescaler behavior.
-APB_SHIFT = (0, 0, 0, 0, 1, 2, 3, 4)
-AHB_SHIFT = (0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9)
-
-
 def image_u32(payload: bytes, address: int) -> int:
     offset = address - BASE
     if offset < 0 or offset + 4 > len(payload):
@@ -69,7 +65,11 @@ def extract_config(payload: bytes) -> dict:
         raise ValueError("unexpected CRM base; firmware clock model no longer applies")
     if const["half_clock_hz"] * 2 != const["hick_hz"]:
         raise ValueError("clock source constants no longer form an 8/4 MHz pair")
-    return {"instructions": actual, "constants": const}
+    return {
+        "instructions": actual,
+        "constants": const,
+        "sram_tables": inspect_tables(payload),
+    }
 
 
 def simulate_configuration(config: dict, original_cfg: int = 0) -> dict:
@@ -100,9 +100,13 @@ def simulate_configuration(config: dict, original_cfg: int = 0) -> dict:
     ahb_field = (cfg >> 4) & 0xF
     apb1_field = (cfg >> 8) & 7
     apb2_field = (cfg >> 11) & 7
-    hclk = sysclk >> AHB_SHIFT[ahb_field]
-    pclk1 = hclk >> APB_SHIFT[apb1_field]
-    pclk2 = hclk >> APB_SHIFT[apb2_field]
+    lookup = config["sram_tables"]["clock_prescaler_table_first16"]
+    adc_divisors = config["sram_tables"]["adc_prescaler_table_4"]
+    hclk = sysclk >> lookup[ahb_field]
+    pclk1 = hclk >> lookup[apb1_field]
+    pclk2 = hclk >> lookup[apb2_field]
+    adc_div = adc_divisors[(cfg >> 14) & 3]
+    adcclk = pclk2 // adc_div
     return {
         "cfg_register_model": f"0x{cfg:08X}",
         "cfg_initial": f"0x{original_cfg:08X}",
@@ -117,6 +121,8 @@ def simulate_configuration(config: dict, original_cfg: int = 0) -> dict:
         "hclk_hz": hclk,
         "pclk1_hz": pclk1,
         "pclk2_hz": pclk2,
+        "adcclk_hz": adcclk,
+        "adc_divisor": adc_div,
         "apb1_field": apb1_field,
         "apb2_field": apb2_field,
         "apb1_timer_clock_hz": pclk1 * (2 if apb1_field >= 4 else 1),
@@ -138,18 +144,20 @@ def analyze(payload: bytes) -> dict:
             key: f"0x{value:08X}" for key, value in config["constants"].items()
         },
         "reset_default_software_profile": normal,
+        "restored_sram_table_evidence": config["sram_tables"],
         "bit28_preexisting_alternative": bit28_preexisting,
         "confidence": {
             "literal_constants": "decoded image evidence",
             "clock_tree": "conditional on STM32F1-compatible field layout and reset state",
             "physical_crystal": "unmeasured; 8 MHz is compiled-in expectation",
-            "bus_prescaler_table": "uses standard inferred shifts, SRAM contents unverified",
+            "bus_prescaler_table": "recovered from the original 7084-byte ARM scatterload SRAM initialization data",
         },
         "limits": [
             "The code preserves part of the original CFGR, including bit28.",
             "A preceding bootloader could in principle leave non-reset bit28 state.",
             "Clock-ready and clock-switch wait loops must complete for this tree.",
             "Register family compatibility does not prove MCU vendor/part number.",
+            "Recovered RAM table initial values are not proof they remain unchanged at runtime.",
             "Timer clock doubling is a conditional STM32F1-compatible rule.",
         ],
     }
