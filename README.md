@@ -42,6 +42,20 @@ python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_
 
 See [V2 UART/TIM SDK fingerprint report (简体中文)](docs/v2-0-09-uart-timer-sdk-fingerprint.zh-CN.md).
 
+### V2.0.09 clock tree: function-level evidence
+
+The clock getter at `0x08030C30` contains **8,000,000 Hz** and **4,000,000 Hz** source constants. The reset-path CRM register writes and the getter form a consistent **conditional** 8 MHz HEXT → PLL ×6 → SYSCLK/HCLK 48 MHz, PCLK1 24 MHz and PCLK2 48 MHz software clock tree. Physical oscillator frequency and MCU identity have **not** been measured or confirmed.
+
+Three `USART_Init` callers configure **USART3 19,200**, **USART2 9,600** and **USART1 115,200** baud. Five timer call chains compute the prescaler from PCLK1; one sets `TIM3 ARR=1999`, consistent with a 1 ms update period under the compatible APB1 timer-doubling rule. These are firmware-derived conditional calculations, not measurements.
+
+```sh
+python tools/v2_clock_tree_model.py firmware/BF_5RH_501_v2_0_9.dat
+python tools/timer_clock_callers.py firmware/BF_5RH_501_v2_0_9.dat
+python tools/usart_clock_callers.py firmware/BF_5RH_501_v2_0_9.dat
+```
+
+Read the [function-level V2 clock tree / UART / timer reverse-engineering report (简体中文)](docs/v2-0-09-clock-tree-dataflow.zh-CN.md) for the complete register addresses, machine-code evidence, limitations and V1/V2 comparison.
+
 ## Original collected utilities
 
 - `fwtool.py`: package XOR packing/unpacking tool.
