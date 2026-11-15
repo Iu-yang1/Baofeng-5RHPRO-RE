@@ -44,6 +44,8 @@
 
 工作流：[V2 clock getter reconnaissance（见对应 PR / Actions）](https://github.com/Iu-yang1/Baofeng-5RHPRO-RE/actions/workflows/v2-clock-dataflow.yml)。工具 `tools/v2_clock_tree_model.py` 对真实镜像的寄存器掩码指令、常量池地址进行验证后才计算时钟配置；不直接套用预设 48 MHz。
 
+> **后续进展（2026-11-15）：** 本文的 48 MHz 是 Reset 时钟配置及默认寄存器状态下的软件模型，**不是已确认的应用运行主频**。新发现的 [Reset → main → PLL ×16 → USART/TIM3 调用链](v2-0-09-pll-runtime-order-peripherals.zh-CN.md) 证明，应用主入口在外设初始化之前调用条件性 8 MHz HSE ×16（128 MHz 请求）。若 ROM 回调成功且最终分频如预期，USART1/2/3 的 BRR16 分别为 `0x0457`、`0x1A0B`、`0x0D05`，TIM3 PSC 为 63；下文 48 MHz 对应 BRR/PSC 应作为**另一种时钟状态的对照值**，不能作为出厂应用默认实测值。
+
 ## 1. Reset → ClockConfig → RCC_GetClocksFreq
 
 V2 复位候选 `0x0800123C` 经 `BLX` 进入 `0x080323DC` 的 CRM 复位代码，再 `BL 0x08031BF4` 启动 HEXT/PLL。调用者 `0x08032D18` 通过 `BL 0x08030C30` 获取系统时钟频率表。
