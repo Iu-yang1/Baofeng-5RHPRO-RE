@@ -1,0 +1,50 @@
+name: V2 peripheral clock constraints
+
+on:
+  push:
+    branches:
+      - "research/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-clock-constraints:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install disassembler
+        run: python -m pip install "capstone==5.0.6"
+      - name: Run all offline unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Find USART BRR and timer PSC/ARR accesses in V2 firmware
+        run: |
+          python tools/peripheral_clock_constraints.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/peripheral_clock_constraints.py --scope vectors --json firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat > v1-v2-peripheral-clock-constraints.json
+      - name: Inspect USART2 BRR and TIM3 prescaler calculation code
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032D20 --end 0x08032DB0
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080324F0 --end 0x08032574
+          python tools/clock_register_trace.py --show-context --pc-from 0x08032D40 --pc-to 0x08032D95 firmware/BF_5RH_501_v2_0_9.dat
+          python tools/clock_register_trace.py --show-context --pc-from 0x08032520 --pc-to 0x08032560 firmware/BF_5RH_501_v2_0_9.dat
+      - name: Compare original V1 and V2 UART and timer paths
+        run: python tools/peripheral_clock_constraints.py --scope vectors firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat
+      - name: Inspect full UART configuration procedure
+        run: python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032CE0 --end 0x08032D20
+      - name: Compare V1-V2 relocated USART and timer SDK windows
+        run: |
+          python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08026C50:0x08032D84:24 --pair 0x0802640C:0x08032540:24
+          python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08026C20:0x08032D54:64 --pair 0x080263C4:0x080324F8:80 --json > sdk-v1-v2-window-comparison.json
+      - name: Store derived metadata only
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-peripheral-clock-constraints
+          path: |
+            v1-v2-peripheral-clock-constraints.json
+            sdk-v1-v2-window-comparison.json
+          if-no-files-found: error
