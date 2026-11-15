@@ -26,6 +26,8 @@ CANDIDATES = {
     0x1FFFF7F3: "Artery project-type byte address",
     0x1FFFF7E8: "Artery UID region (avoid dumping unique identity)",
     0x40022000: "STM32F1-style FLASH controller",
+    0x40016C00: "AT32F403A/407-compatible I2S2EXT candidate",
+    0x1FFFD000: "System boot ROM pointer table candidate",
     0x40021000: "STM32F1/AT32 CRM/RCC",
     0x40020400: "DMA2 candidate",
 }
