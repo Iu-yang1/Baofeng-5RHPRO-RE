@@ -98,6 +98,10 @@ class OriginalStockIdentityCFGTests(unittest.TestCase):
     def test_real_shared_rom_helper_uid0_dereference_from_entry(self):
         for version, report in self.report.items():
             with self.subTest(version=version):
+                self.assertEqual(report["candidate_source_count"], 7)
+                self.assertEqual(report["source_types"]["MOVW/MOVT possible ID address"], 0)
+                self.assertEqual(report["unique_candidate_accesses"], 1)
+                self.assertFalse(report["source_budget_exhausted"])
                 self.assertTrue(report["original_helper_uid0_read_reachable_from_entry"])
                 self.assertFalse(report["helper_budget_exhausted"])
                 matches = [x for x in report["candidate_id_accesses"]
