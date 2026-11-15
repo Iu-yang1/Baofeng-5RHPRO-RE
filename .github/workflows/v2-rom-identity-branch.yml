@@ -65,6 +65,15 @@ jobs:
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803235E --end 0x080323DE
           python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x080173DC --target 0x080193E8 --target 0x080194B4 --target 0x080340D0
           python tools/thumb_callsites.py firmware/BF_5RH_501_v1_1_04.dat --target 0x080111F0 --target 0x0802622A
+      - name: Contrast original V1 reset-to-main/PLL path and V2 UART dispatch contexts
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001220 --end 0x08001244
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08027BE8 --end 0x08027C58
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080111EE --end 0x08011210
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001220 --end 0x08001244
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080102A0 --end 0x08010340
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800C9C0 --end 0x0800CA68
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08018BB4 --end 0x08018C68
       - name: Archive only public-code-derived ROM branch evidence
         uses: actions/upload-artifact@v4
         with:
