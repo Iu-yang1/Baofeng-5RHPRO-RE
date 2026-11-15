@@ -2,7 +2,7 @@
 """Recover the V2 ROM-initialized SRAM prescaler tables from ARM scatterload.
 
 Derived strictly from Thumb 0x08001F06..0x08001F5A and the actual descriptor:
-tag bits0..2 literal length (extended if 0), bits4..7 run length
+tag bits0..2 literal count-plus-one (extended if 0), bits4..7 run length
 (extended if 0), bit3 selects zero-run or backward-reference.
 Only extracted clock-table bytes and a digest are reported. No firmware dump.
 """
@@ -43,6 +43,10 @@ def decompress_region(blob: bytes, output_length: int) -> tuple[bytes, int]:
         literal_count = tag & 0x07
         if literal_count == 0:
             literal_count = take()
+        # Thumb 0x08001F2A decrements *before* testing the literal loop.
+        literal_count -= 1
+        if literal_count < 0:
+            raise ValueError("invalid scatterload literal count")
         run_count = tag >> 4
         if run_count == 0:
             run_count = take()
@@ -55,7 +59,7 @@ def decompress_region(blob: bytes, output_length: int) -> tuple[bytes, int]:
         if tag & 0x08:
             distance = take()
             if not 0 < distance <= len(output):
-                raise ValueError("invalid scatterload backward-reference distance")
+                raise ValueError(f"invalid scatterload backward-reference distance {distance} at src={cursor}, dst={len(output)}, tag=0x{tag:02X}")
             for _ in range(run_count + 2):
                 if len(output) >= output_length:
                     raise ValueError("back-reference overruns declared SRAM region")
