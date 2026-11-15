@@ -101,6 +101,21 @@ access at `0x08061A54`; software lineage must not be confused with physical part
 python tools/v2_air32_sdk_fingerprint.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
 ```
 
+### Pro V2 ROM UID-branch CFGR and bounded RCC MMIO audit
+
+[中文：ROM 分支及 RCC 直接寄存器写入审计](docs/v2-0-09-rom-cfgr-mmio-audit.zh-CN.md)
+checks stock `0x1A/0x1B/0x1C` dispatch registers and the `0x1C`-specific
+CFGR pre-mask `0xEFC3FFFF` (clears bit 28 and bits 21:18) before ROM
+`SysFreq_Set`; all paths subsequently write HSE PLL source via
+`(CFGR & ~0x30000) | 0x10000`. A bounded straight-line literal-base MMIO
+scan gives 26 referenced RCC base loads and 30 unique store/address
+candidates in each V1/V2 image. This scan cannot rule out indirect
+stores, constructed addresses, function pointers, or ROM-side writes.
+
+```sh
+python tools/v2_rom_cfgr_mmio_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json
+```
+
 ### Pro V2 clock *runtime order*: Reset → main → PLL x16 → TIM/USART
 
 [Original-byte runtime call graph and BRR/PSC analysis (简体中文)](docs/v2-0-09-pll-runtime-order-peripherals.zh-CN.md)
