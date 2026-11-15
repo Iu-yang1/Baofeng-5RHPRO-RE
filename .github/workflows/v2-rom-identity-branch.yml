@@ -39,8 +39,8 @@ jobs:
           python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-bootrom-identity-metadata.json
       - name: Check if ROM helper is directly called from the actual application
         run: |
-          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x08001260 --target 0x0800134C --target 0x08001396
-          python tools/thumb_callsites.py firmware/BF_5RH_501_v1_1_04.dat --target 0x08001260 --target 0x0800134C --target 0x08001396
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x08001260 --target 0x0800134C --target 0x08001396 --target 0x0803235E
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v1_1_04.dat --target 0x08001260 --target 0x0800134C --target 0x08001396 --target 0x0802622A
       - name: Inspect verified direct caller of early ROM helper
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803235E --end 0x080323B8
