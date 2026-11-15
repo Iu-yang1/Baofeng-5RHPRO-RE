@@ -1,0 +1,35 @@
+name: V2 ROM identity branch reverse engineering
+
+on:
+  push:
+    branches:
+      - "research/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Thumb disassembler
+        run: python -m pip install "capstone==5.0.6"
+      - name: Run offline regression suite
+        run: python -m unittest discover -s tests -v
+      - name: Inspect V2 UID boot ROM dispatch (not a model-ID lookup)
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001250 --end 0x08001356
+      - name: Compare corresponding V1 startup and UID branch
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001250 --end 0x08001356
+          python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08001280:0x08001280:0xD8
+      - name: Search special literal targets in original firmware
+        run: |
+          python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat
