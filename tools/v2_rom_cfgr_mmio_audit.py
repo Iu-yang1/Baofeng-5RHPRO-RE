@@ -220,7 +220,7 @@ def scan_local_rcc_writes(payload: bytes) -> dict:
     items = scan_xrefs(payload)["candidates"]
     refs = []
     for item in items:
-        if int(item["address"], 16) in (RCC_BASE, RCC_GATE):
+        if int(item["address"], 16) in (RCC_BASE, RCC_CFGR, RCC_GATE):
             refs.extend(int(e["ldr_pc"], 16)
                         for e in item["thumb_literal_load_candidates"])
     findings = {}
@@ -233,7 +233,7 @@ def scan_local_rcc_writes(payload: bytes) -> dict:
             findings.values(), key=lambda x: (x["store_pc"], x["address"])
         ),
         "scope": (
-            "PC-relative exact base literals 0x40021000/0x400210F0; "
+            "PC-relative exact base literals 0x40021000/0x40021004/0x400210F0; "
             "max 32 straight-line instructions; stop at call/branch; "
             "no alias, stack, or indirect pointer propagation"
         ),
