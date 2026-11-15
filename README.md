@@ -6,9 +6,9 @@ Original reverse-engineering archive: https://github.com/kholdfuzion/Baofeng-5RH
 
 ## Current status
 
-**P0: read-only offline package inspection, hardware identification, and reference-firmware research.**
+**P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
 
-There is no verified, flashable replacement firmware in this repository yet.
+There is no verified, flashable replacement firmware in this repository yet. The new `firmware-pro/core` is a host-tested, `no_std` **protocol core**, not an MCU port.
 
 Target-radio menu reports **Firmware `v2_0_09`** and **Software `v1_1_04`**. These two fields are recorded exactly; they do **not** prove that both upgrade files should be flashed, or establish the MCU/PCB revision.
 
@@ -55,6 +55,20 @@ python tools/usart_clock_callers.py firmware/BF_5RH_501_v2_0_9.dat
 ```
 
 Read the [function-level V2 clock tree / UART / timer reverse-engineering report (简体中文)](docs/v2-0-09-clock-tree-dataflow.zh-CN.md) for the complete register addresses, machine-code evidence, limitations and V1/V2 comparison.
+
+### V2 USART/GNSS and independent firmware architecture
+
+Stock V2.0.09 instruction-backed evidence now links **USART2 9600 baud + DMA1 CH6 + IDLE ISR** to a real **NMEA GGA decoder**; USART3 **19200 baud + DMA1 CH3** implements an XOR-encoded transmit protocol, and USART1 **115200 baud** uses an interrupt-driven 20-byte receive ring. Roles of USART1 and USART3 remain under investigation.
+
+The [V2 UART / IRQ / independent firmware architecture report (简体中文)](docs/uv5rh-pro-firmware-architecture-v1.zh-CN.md) documents instruction addresses, DMA SRAM buffers, memory layout and the next MCU/HAL milestones.
+
+A small original MCU-agnostic Rust module is now available at [firmware-pro/core](firmware-pro/README.md). It handles NMEA sentence framing and checksum verification; it is not yet a complete GNSS decoder and does not operate RF hardware.
+
+```sh
+python tools/v2_uart_protocol_evidence.py firmware/BF_5RH_501_v2_0_9.dat
+python tools/v2_memory_layout.py firmware/BF_5RH_501_v2_0_9.dat
+cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
+```
 
 ## Original collected utilities
 
