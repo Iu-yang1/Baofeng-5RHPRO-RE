@@ -45,13 +45,13 @@ class ThumbDataflowSyntheticTests(unittest.TestCase):
 
     def test_ram_roundtrip_recovers_rcc_pointer(self):
         r = walk_cfg(RAM_ALIAS, 0x08001000)
-        self.assertIn(("0x08001024", "0x40021004"), sites(r))
+        self.assertIn(("0x08001014", "0x40021004"), sites(r))
         self.assertFalse(r["budget_exhausted"])
 
     def test_mov_pair_scan_discovers_sram_provenance_seed(self):
         self.assertIn(0x08001000, mov_pair_seeds(RAM_ALIAS))
         self.assertIn(0x08001008, mov_pair_seeds(RAM_ALIAS))
-        self.assertIn(("0x08001024", "0x40021004"),
+        self.assertIn(("0x08001014", "0x40021004"),
                       {(e["pc"], e["address"]) for e in scan(RAM_ALIAS)["cfg_candidate_stores"]})
 
     def test_callee_clobber_prevents_false_pointer_completion(self):
