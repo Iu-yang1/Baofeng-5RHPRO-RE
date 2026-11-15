@@ -57,6 +57,14 @@ jobs:
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat
+      - name: Trace application 128MHz caller, timer init, and USART entry order
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08034090 --end 0x080341A0
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080173D8 --end 0x080173EE
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080193E8 --end 0x08019450
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803235E --end 0x080323DE
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x080173DC --target 0x080193E8 --target 0x080194B4 --target 0x080340D0
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v1_1_04.dat --target 0x080111F0 --target 0x0802622A
       - name: Archive only public-code-derived ROM branch evidence
         uses: actions/upload-artifact@v4
         with:
