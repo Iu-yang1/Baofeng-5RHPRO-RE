@@ -21,6 +21,7 @@ from v2_bootrom_dispatch import require as assert_ins
 from v2_clock_tree_model import analyze as clock_analyze
 from usart_clock_callers import analyze_callers as usart_analyze, predict_brr16
 from timer_clock_callers import analyze_callers as timer_analyze
+from thumb_callsites import find_calls
 from v2_air32_sdk_fingerprint import analyze as air32_analyze
 
 BASE = 0x08001000
@@ -44,6 +45,31 @@ TIM3_SETUP = 0x08019426
 CLOCK_GETTER = 0x08030C30
 USART_INIT = 0x08032CDC
 TIM_INIT = 0x080324F8
+# Only firmware-verified RCC helper targets. Direct BL enumeration cannot
+# exclude direct register stores or calls through function pointers.
+CLOCK_HELPER_TARGETS = {
+    "rcc_deinit": 0x08030BF0,
+    "hse_enable": 0x08030D18,
+    "pll_enable": 0x08030D8C,
+    "sysclk_select": 0x08030DB4,
+    "ahb_prescaler": 0x08030D04,
+    "apb1_prescaler": 0x08030D64,
+    "apb2_prescaler": 0x08030D78,
+    "early_reset_clock_init": 0x08031BF4,
+    "proprietary_rom_pll_helper": 0x08001260,
+}
+
+
+def clock_helper_direct_xrefs(payload: bytes) -> dict:
+    matches = find_calls(payload, list(CLOCK_HELPER_TARGETS.values()))
+    return {
+        label: {
+            "callee": hexpc(target),
+            "direct_bl_candidates": [x["call_pc"] for x in matches[hexpc(target)]],
+        }
+        for label, target in CLOCK_HELPER_TARGETS.items()
+    }
+
 
 
 def hexpc(pc: int) -> str:
@@ -282,6 +308,7 @@ def analyze(v2: bytes, v1: bytes | None = None) -> dict:
         "main_early_calls": main_early,
         "main_to_peripheral_callsite_paths": paths,
         "clock_and_peripheral_hypotheses": clock_brr_timing(v2),
+        "direct_rcc_helper_xrefs": clock_helper_direct_xrefs(v2),
         "runtime_trigger_assessment": (
             "Reset->scatterload->main contains the PLL call without a local "
             "operating-mode or firmware-version branch. The ROM callback "
@@ -290,6 +317,7 @@ def analyze(v2: bytes, v1: bytes | None = None) -> dict:
         "limits": [
             "Static CFG includes both sides of conditional branches, never proves execution.",
             "Direct BL paths can miss indirect calls; no negative claim is made from an absent path.",
+            "RCC direct-xref audit covers named helper entries only, not direct MMIO writes or hidden ROM actions.",
             "128MHz is an SDK-requested clock, not a measured MCU frequency.",
             "USART BRR values assume 16x oversampling and STM32/AIR32 compatible format.",
             "TIM3 calculations assume APB1 /2 and timer clock doubling under the proposed PLL state.",
