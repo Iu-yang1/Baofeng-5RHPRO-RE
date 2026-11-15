@@ -79,6 +79,10 @@ jobs:
       - name: Locate V2 C startup SRAM initialization and prescaler table source
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001EA4 --end 0x08001FC0
+      - name: Inspect ARM scatterload table for RAM prescaler initialization
+        run: |
+          python tools/v2_scatterload_regions.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_scatterload_regions.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-scatterload-regions.json
       - name: Archive read-only metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -88,4 +92,5 @@ jobs:
             v2-clock-caller-index.json
             v2-timer-caller-constraints.json
             v2-usart-caller-constraints.json
+            v2-scatterload-regions.json
           if-no-files-found: error
