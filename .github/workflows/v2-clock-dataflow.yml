@@ -53,6 +53,17 @@ jobs:
       - name: Compare V1 USART clock getter call source without assumed address relocation
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08026B70 --end 0x08026C5C
+      - name: Recover real timer ARR/PSC caller values and 1ms constraint
+        run: |
+          python tools/timer_clock_callers.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/timer_clock_callers.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-timer-caller-constraints.json
+      - name: Examine actual UART configuration callers and their baud rates
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800C9C0 --end 0x0800CA68
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080102A0 --end 0x08010360
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08018BB0 --end 0x08018C64
+      - name: Find the V1 clock getter by actual call target
+        run: python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08026B80 --end 0x08026C58
       - name: Archive read-only metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -60,4 +71,5 @@ jobs:
           path: |
             v2-clock-tree-evidence.json
             v2-clock-caller-index.json
+            v2-timer-caller-constraints.json
           if-no-files-found: error
