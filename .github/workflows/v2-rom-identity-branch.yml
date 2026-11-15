@@ -57,32 +57,10 @@ jobs:
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat
-      - name: Trace application 128MHz caller, timer init, and USART entry order
-        run: |
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08034090 --end 0x080341A0
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080173D8 --end 0x080173EE
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080193E8 --end 0x08019450
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803235E --end 0x080323DE
-          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x080173DC --target 0x080193E8 --target 0x080194B4 --target 0x080340D0
-          python tools/thumb_callsites.py firmware/BF_5RH_501_v1_1_04.dat --target 0x080111F0 --target 0x0802622A
-      - name: Contrast original V1 reset-to-main/PLL path and V2 UART dispatch contexts
-        run: |
-          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001220 --end 0x08001244
-          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08027BE8 --end 0x08027C58
-          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080111EE --end 0x08011210
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001220 --end 0x08001244
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080102A0 --end 0x08010340
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800C9C0 --end 0x0800CA68
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08018BB4 --end 0x08018C68
       - name: Verify reset-to-main, nested PLL/USART/TIM ordering and conditional clocks
         run: |
           python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
           python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-pll-runtime-order.json
-      - name: Inspect V1 PLL wrapper and its timer clock query for version comparison
-        run: |
-          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x0802622A --end 0x080262AA
-          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080130A0 --end 0x08013130
-          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001234 --end 0x08001244
       - name: Archive only public-code-derived ROM branch evidence
         uses: actions/upload-artifact@v4
         with:
