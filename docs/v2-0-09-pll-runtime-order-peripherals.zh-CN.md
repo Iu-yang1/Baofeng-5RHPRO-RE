@@ -132,3 +132,8 @@ python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmwar
 ### 2026-11-15 补充：直接 RCC MMIO 写入与 UID 分支
 
 [新增 ROM/RCC MMIO 审计](v2-0-09-rom-cfgr-mmio-audit.zh-CN.md) 恢复 `0x1C` 分支的 `RCC_CFGR` 清位/设置操作，及所有 UID 分支共同的 PLL 时钟来源写入。有限静态扫描在 V1/V2 各发现 26 个寄存器基址文字池引用点和去重后 30 个本地存储候选，集中在 ROM 支持、标准 RCC 库和 Reset 初始化区域。**这是受限范围内的未发现运行态写入，不是已证明所有间接路径均不存在**。128 MHz 仍为条件性请求。
+
+
+## 2026-11-15：控制流级 RCC 写入补证
+
+[新版本 CFG 数据流研究](v1-v2-rcc-cfg-dataflow.zh-CN.md) 在原厂 V1/V2 中各补充发现 13 个以前跨基本块遗漏的 RCC 写入候选（总计 43），均来自 RCC 库与早期初始化相关代码。已有条件性 128 MHz 时钟请求、USART BRR 与 TIM PSC 计算未被这些候选推翻；不能因静态扫描未命中运行时收发状态便断言固件绝无动态切换。
