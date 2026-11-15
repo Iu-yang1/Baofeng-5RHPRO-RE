@@ -1,0 +1,39 @@
+name: V2.0.09 CRM clock trace
+
+on:
+  push:
+    branches:
+      - "research/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clock-trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Thumb decoder
+        run: python -m pip install "capstone==5.0.6"
+      - name: Test offline firmware analysis
+        run: python -m unittest discover -s tests -v
+      - name: Trace V2.0.09 Reset path and clock-register candidates
+        run: |
+          python tools/clock_register_trace.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/clock_register_trace.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-clock-reset.json
+      - name: Compare V1.1.04 and V2.0.09 across vector-seeded paths
+        run: |
+          python tools/clock_register_trace.py --scope vectors --json firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat > v1-v2-clock-vectors.json
+      - name: Archive metadata only
+        uses: actions/upload-artifact@v4
+        with:
+          name: pro-v2-clock-trace
+          path: |
+            v2-clock-reset.json
+            v1-v2-clock-vectors.json
+          if-no-files-found: error
