@@ -57,8 +57,9 @@ def choose_path(uid_low_word_msb: int) -> dict:
         "uid_low_word_msb": f"0x{uid_low_word_msb:02X}",
         "dispatch": behavior,
         "series_id_assessment": (
-            "Not a vendor family identifier: read from UID[31:0] at 0x1FFFF7E8. "
-            "Artery F403A/407 series ID is UID[95:88], located at 0x1FFFF7F0."
+            "This is UID0[31:24], not AT32 F403A/407 Series ID UID[95:88]. "
+            "LuatOS AIR32F103 documents some UID0 patterns with high byte 0x1A; "
+            "neither the actual device UID nor 0x1B/0x1C models is established."
         ),
     }
 
@@ -99,7 +100,7 @@ def analyze(v2: bytes, v1: bytes | None = None) -> dict:
     report = {
         "image": "UV-5RH Pro V2.0.09 original decoded Thumb",
         "uid_register_read": f"0x{UID_LSW_ADDRESS:08X}",
-        "read_field": "UID[31:24] of UID low word, NOT 96-bit UID series byte",
+        "read_field": "UID0[31:24] at 0x1FFFF7E8; distinct from AT32 UID[95:88] Series ID",
         "rom_vector_table": f"0x{BOOTROM_TABLE:08X}",
         "rom_callback_offset": ROM_ENTRY_OFFSET,
         "direct_caller_pc": "0x08032386",

@@ -27,7 +27,7 @@ class StockBootROMDispatchTests(unittest.TestCase):
     def test_uid_low_word_and_rom_callback_fingerprints(self):
         result = analyze(self.v2)
         self.assertEqual(result["uid_register_read"], "0x1FFFF7E8")
-        self.assertEqual(result["read_field"], "UID[31:24] of UID low word, NOT 96-bit UID series byte")
+        self.assertEqual(result["read_field"], "UID0[31:24] at 0x1FFFF7E8; distinct from AT32 UID[95:88] Series ID")
         self.assertEqual(result["rom_callback_offset"], 12)
         self.assertEqual(result["recognized_decision_bytes"], ["0x1A","0x1B","0x1C"])
         self.assertGreaterEqual(len(result["verified_instructions"]), 25)
@@ -50,6 +50,7 @@ class StockBootROMDispatchTests(unittest.TestCase):
         self.assertIn("ROM offset 0x0C", choose_path(0x1B)["dispatch"])
         self.assertIn("temporarily adjust CRM_CFG", choose_path(0x1C)["dispatch"])
         self.assertIn("skip the ROM call", choose_path(0x19)["dispatch"])
+        self.assertIn("LuatOS AIR32F103", choose_path(0x1A)["series_id_assessment"])
         with self.assertRaises(ValueError):
             choose_path(-1)
         with self.assertRaises(ValueError):
