@@ -56,6 +56,24 @@ python tools/usart_clock_callers.py firmware/BF_5RH_501_v2_0_9.dat
 
 Read the [function-level V2 clock tree / UART / timer reverse-engineering report (简体中文)](docs/v2-0-09-clock-tree-dataflow.zh-CN.md) for the complete register addresses, machine-code evidence, limitations and V1/V2 comparison.
 
+### V1/V2 instruction-level identity-register audit
+
+[中文报告：UID / F_SIZE / ARM CPUID / AT32 PID 的 Thumb CFG 读取审计](docs/v1-v2-mcu-id-cfg-reads.zh-CN.md)
+extends the read-only firmware audit from literal-address occurrence checks
+to **resolved Thumb LDR/LDRH/LDRB effective-address evidence** across
+conditional branches, MOVW/MOVT pairs and local SRAM/stack aliases.
+
+In **both** original V1.1.04 and V2.0.09 images, seven ID-proximal
+address sources yield **one** resolved MCU identity access: the ROM helper
+at `0x080012A4` loads UID0 from `0x1FFFF7E8`. The six other source
+values are ARM SCB VTOR/AIRCR/SCR addresses, **not** CPUID. No additional
+F_SIZE, CPUID or AT32 PID/Project ID reads were resolved within the
+bounded model. This cannot exclude indirect or ROM-internal accesses.
+
+```sh
+python tools/v1_v2_mcu_id_cfg_reads.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --show-accesses
+```
+
 ### Original V1/V2 MCU electronic-ID cross-check (read-only analysis)
 
 The firmware uses an **AIR32-style UID[31:0] dispatch** at `0x1FFFF7E8`,
