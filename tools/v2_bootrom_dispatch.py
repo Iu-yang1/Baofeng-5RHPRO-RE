@@ -84,12 +84,17 @@ def analyze(v2: bytes, v1: bytes | None = None) -> dict:
         require(v2, 0x08001288, "ldr", "r0, [pc, #0x160]", SPECIAL_MMIO_BASE),
         require(v2, 0x0800128C, "ldr.w", "r8, [r0]"),
         require(v2, 0x08001296, "str", "r0, [r1]"),
+        require(v2, 0x08001298, "mov.w", "r0, #-0x5a5a5a5b"),
         require(v2, 0x0800129E, "str.w", "r0, [r1, #0x28c]"),
         require(v2, 0x08001318, "ldr", "r0, [pc, #0xd0]", SPECIAL_MMIO_BASE),
         require(v2, 0x0800131C, "str.w", "r8, [r0]"),
         require(v2, 0x08001334, "mov.w", "r0, #0x5a5a5a5a"),
         require(v2, 0x08001338, "ldr", "r1, [pc, #0xd0]", UNDOCUMENTED_FLASH_MMIO),
         require(v2, 0x0800133A, "str", "r0, [r1]"),
+        require(v2, 0x08032364, "mov.w", "r4, #0x10000"),
+        require(v2, 0x0803237E, "movs", "r2, #1"),
+        require(v2, 0x08032380, "mov.w", "r1, #0x380000"),
+        require(v2, 0x08032386, "bl", "#0x8001260"),
     ]
     report = {
         "image": "UV-5RH Pro V2.0.09 original decoded Thumb",
@@ -97,6 +102,16 @@ def analyze(v2: bytes, v1: bytes | None = None) -> dict:
         "read_field": "UID[31:24] of UID low word, NOT 96-bit UID series byte",
         "rom_vector_table": f"0x{BOOTROM_TABLE:08X}",
         "rom_callback_offset": ROM_ENTRY_OFFSET,
+        "direct_caller_pc": "0x08032386",
+        "caller_argument_register_values": {
+            "r0": "0x00010000", "r1": "0x00380000", "r2": "0x00000001"
+        },
+        "special_flash_write_pattern": {
+            "address": "0x4002228C",
+            "before_uid_dispatch": "0xA5A5A5A5",
+            "after_uid_dispatch": "0x5A5A5A5A",
+            "meaning": "unknown; not listed as a standard register in examined AT32F403A/407 FLASH table",
+        },
         "recognized_decision_bytes": [f"0x{v:02X}" for v in COMPARISONS],
         "branch_models": [choose_path(v) for v in (0x1A, 0x1B, 0x1C, 0x55)],
         "magic_register_addresses": [
