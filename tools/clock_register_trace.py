@@ -30,6 +30,21 @@ REGISTER_BANKS = (
     ("FLASH", 0x40022000, 0x40022100),
     ("PWR", 0x40007000, 0x40007100),
     ("SysTick", 0xE000E010, 0xE000E020),
+    # STM32F1-compatible candidate address map; verify peripheral ownership
+    # against the actual MCU before translating divisors to clock rates.
+    ("USART1", 0x40013800, 0x40013840),
+    ("USART2", 0x40004400, 0x40004440),
+    ("USART3", 0x40004800, 0x40004840),
+    ("UART4", 0x40004C00, 0x40004C40),
+    ("UART5", 0x40005000, 0x40005040),
+    ("TIM1", 0x40012C00, 0x40012C80),
+    ("TIM2", 0x40000000, 0x40000080),
+    ("TIM3", 0x40000400, 0x40000480),
+    ("TIM4", 0x40000800, 0x40000880),
+    ("TIM5", 0x40000C00, 0x40000C80),
+    ("TIM6", 0x40001000, 0x40001080),
+    ("TIM7", 0x40001400, 0x40001480),
+    ("TIM8", 0x40013400, 0x40013480),
 )
 # Names are AT32F403A/STM32F1-style interpretations, not a part-number claim.
 CRM_OFFSETS = {
@@ -38,14 +53,33 @@ CRM_OFFSETS = {
     0x18: "APB2EN", 0x1C: "APB1EN", 0x20: "BPDC",
     0x24: "CTRLSTS", 0x28: "AHBRST",
 }
+USART_OFFSETS = {
+    0x00: "SR", 0x04: "DR", 0x08: "BRR",
+    0x0C: "CR1", 0x10: "CR2", 0x14: "CR3", 0x18: "GTPR",
+}
+TIMER_OFFSETS = {
+    0x00: "CR1", 0x04: "CR2", 0x08: "SMCR", 0x0C: "DIER",
+    0x10: "SR", 0x14: "EGR", 0x18: "CCMR1", 0x1C: "CCMR2",
+    0x20: "CCER", 0x24: "CNT", 0x28: "PSC", 0x2C: "ARR",
+    0x30: "RCR", 0x34: "CCR1", 0x38: "CCR2", 0x3C: "CCR3",
+    0x40: "CCR4", 0x44: "BDTR", 0x48: "DCR", 0x4C: "DMAR",
+}
 MAX_SITES = 2500
 
 
 def _region(address: int) -> tuple[str, str] | None:
     for name, start, end in REGISTER_BANKS:
         if start <= address < end:
-            suffix = CRM_OFFSETS.get(address-start) if name == "CRM/RCC" else None
-            return name, suffix or f"+0x{address-start:02X}"
+            offset = address - start
+            if name == "CRM/RCC":
+                suffix = CRM_OFFSETS.get(offset)
+            elif name.startswith(("USART", "UART")):
+                suffix = USART_OFFSETS.get(offset)
+            elif name.startswith("TIM"):
+                suffix = TIMER_OFFSETS.get(offset)
+            else:
+                suffix = None
+            return name, suffix or f"+0x{offset:02X}"
     return None
 
 
@@ -248,7 +282,7 @@ def analyze(payload: bytes, scope: str = "reset", cap: int = MAX_INSTRUCTIONS) -
         "root_count": len(roots),
         "limitations": [
             "Static candidates, not evidence that a register was written on physical hardware.",
-            "CRM/FLASH labels follow a STM32F1/AT32F403A-style candidate map.",
+            "CRM/FLASH/UART/TIM register labels use a STM32F1-compatible candidate map.",
             "No hardware clock frequency, HSE frequency, PLL multiplier, or exact MCU model is assumed.",
             "Unknown register arithmetic, branch predicates, and indirect targets may be missed.",
             "Register constants propagate within blocks and into candidate callees; joins are not a full dataflow solution.",
