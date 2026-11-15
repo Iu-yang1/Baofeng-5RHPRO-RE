@@ -1,0 +1,45 @@
+name: Experimental read-only MCU ID UART diagnostic build
+
+on:
+  push:
+    branches:
+      - "research/**"
+    paths:
+      - "firmware-pro/diagnostics/mcu-id-uart/**"
+      - "tools/probe_radio_mcu_uart.py"
+      - "tests/test_probe_radio_mcu_uart.py"
+      - ".github/workflows/mcu-id-uart-diagnostic.yml"
+  pull_request:
+    paths:
+      - "firmware-pro/diagnostics/mcu-id-uart/**"
+      - "tools/probe_radio_mcu_uart.py"
+      - "tests/test_probe_radio_mcu_uart.py"
+      - ".github/workflows/mcu-id-uart-diagnostic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-only:
+    name: Compile experimental ARM ELF (never flash)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check compiler availability
+        run: |
+          clang --version
+          ld.lld --version
+          readelf --version
+      - name: Build Cortex-M3 Thumb diagnostic without vendor reads
+        run: |
+          make -C firmware-pro/diagnostics/mcu-id-uart VENDOR_READS=0
+          readelf -h firmware-pro/diagnostics/mcu-id-uart/build/id_probe.elf | grep -E 'Machine:.*ARM'
+          readelf -S firmware-pro/diagnostics/mcu-id-uart/build/id_probe.elf | grep -F '.isr_vector'
+      - name: Compile full ID-read variant (no uploadable .dat produced)
+        run: |
+          make -C firmware-pro/diagnostics/mcu-id-uart clean
+          make -C firmware-pro/diagnostics/mcu-id-uart VENDOR_READS=1
+          readelf -h firmware-pro/diagnostics/mcu-id-uart/build/id_probe.elf | grep -E 'Entry point address:.*0x80010'
+      - name: Test offline UART frame parsing and manufacturer ID interpretations
+        run: python -m unittest discover -s tests -p "test_probe_radio_mcu_uart.py" -v
