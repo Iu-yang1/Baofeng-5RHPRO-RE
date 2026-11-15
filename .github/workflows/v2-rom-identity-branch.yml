@@ -45,6 +45,10 @@ jobs:
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803235E --end 0x080323B8
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080261EC --end 0x0802628A
+      - name: Identify application context that calls ROM helper wrapper
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08017380 --end 0x0801744A
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080111A4 --end 0x08011250
       - name: Search special literal targets in original firmware
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
