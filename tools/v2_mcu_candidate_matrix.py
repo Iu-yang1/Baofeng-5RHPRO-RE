@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Compare original UV-5RH Pro V2 instruction evidence to MCU public specifications.
+
+All board claims are hypotheses except the supplied photo-observed LQFP64.
+A pass means "not excluded by these tests"; it NEVER identifies the MCU.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from mcu_fingerprint import decoded_payload
+from v2_memory_layout import analyze as memory_layout
+from v2_uart_protocol_evidence import analyze as uart_protocol
+
+FLASH_BASE = 0x08000000
+# Recovered ARM scatterload descriptor: this flash address is actually read
+# by the startup decompressor, rather than simply being present in a .dat.
+SCATTERLOAD_COMPRESSED_SOURCE = 0x08061A54
+# The actual physical Pro board package has 64 perimeter pins (user photos).
+OBSERVED_PACKAGE = "LQFP64"
+
+# Memory, USART and packages derived from original manufacturer product pages,
+# not from the ordinary UV-5RH reference firmware. Peripheral versions must
+# still be matched to a real silicon ID and register behavior.
+SPECS = (
+    {
+        "part": "AT32F421C8T7",
+        "flash_kib": 64, "ram_kib": 16, "usarts": 2,
+        "dma_channels": 5, "package": "LQFP48",
+        "source": "https://arterytek.com/en/product/AT32F421.jsp",
+    },
+    {
+        "part": "AT32F403ARET7",
+        "flash_kib": 512, "ram_kib": 96, "usarts": 3,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://arterytek.com/en/product/AT32F403A.jsp",
+    },
+    {
+        "part": "AT32F403ARGT7",
+        "flash_kib": 1024, "ram_kib": 96, "usarts": 3,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://arterytek.com/en/product/AT32F403A.jsp",
+    },
+    {
+        "part": "AT32F407RET7",
+        "flash_kib": 512, "ram_kib": 96, "usarts": 4,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://arterytek.com/en/product/AT32F407.jsp",
+    },
+    {
+        "part": "AT32F407RGT7",
+        "flash_kib": 1024, "ram_kib": 96, "usarts": 4,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://arterytek.com/en/product/AT32F407.jsp",
+    },
+    {
+        "part": "GD32F303RET6",
+        "flash_kib": 512, "ram_kib": 64, "usarts": 3,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://www.gigadevice.com.cn/product/mcu/main-stream-mcus",
+    },
+    {
+        "part": "GD32F303RGT6",
+        "flash_kib": 1024, "ram_kib": 96, "usarts": 3,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://www.gigadevice.com.cn/product/mcu/mcus-product-selector/gd32f303rgt6",
+    },
+)
+
+
+def compare_spec(spec: dict, evidence: dict) -> dict:
+    failures = []
+    if spec["flash_kib"] * 1024 <= evidence["highest_executed_flash_source_offset"]:
+        failures.append("insufficient addressable program Flash for startup's actual source address")
+    if spec["ram_kib"] * 1024 < evidence["initial_sp_offset_from_sram"]:
+        failures.append("initial MSP and zero region extend beyond specified SRAM")
+    if spec["usarts"] < evidence["independent_usart_instances"]:
+        failures.append("fewer USART instances than original code initializes")
+    if spec["package"] != evidence["photo_package"]:
+        failures.append("manufacturer package does not match the 64-pin photographed MCU")
+    if (spec["dma_channels"] is not None and
+            spec["dma_channels"] < evidence["highest_dma_channel_candidate"]):
+        failures.append("too few DMA channels for the USART2 DMA register usage")
+
+    return {
+        "part": spec["part"],
+        "status": "excluded_by_original_evidence" if failures else "not_excluded_not_identified",
+        "failures": failures,
+        "official_spec": spec,
+    }
+
+
+def analyze(payload: bytes) -> dict:
+    memory = memory_layout(payload)
+    serial = uart_protocol(payload)
+    usarts = {
+        serial["gnss_nmea_rx"]["uart"],
+        serial["private_serial_protocol_candidate"]["uart"],
+        serial["usart1_irq_ring"]["uart"],
+    }
+    evidence = {
+        "payload_bytes": len(payload),
+        "flash_base_hypothesis": f"0x{FLASH_BASE:08X}",
+        "actual_scatterload_source_pc": f"0x{SCATTERLOAD_COMPRESSED_SOURCE:08X}",
+        "highest_executed_flash_source_offset": SCATTERLOAD_COMPRESSED_SOURCE-FLASH_BASE,
+        "initial_sp": memory["initial_msp_candidate"],
+        "initial_sp_offset_from_sram": int(memory["initial_msp_candidate"], 16)-0x20000000,
+        "data_bytes": memory["data_region"]["length"],
+        "zero_region_bytes": memory["zero_region"]["length"],
+        "independent_usart_instances": len(usarts),
+        "original_code_usart_instances": sorted(usarts),
+        "highest_dma_channel_candidate": 6,
+        "photo_package": OBSERVED_PACKAGE,
+        "evidence_note": "Original decoded image + photo; flash source proven by scatterload; memory and peripheral mapping conditional on Cortex-M/STM32-compatible architecture.",
+    }
+    if not memory["data_then_zero_contiguous"] or not memory["last_region_end_equals_initial_msp"]:
+        raise ValueError("V2 scatterload RAM data no longer matches initial MSP")
+    return {
+        "firmware": "UV-5RH Pro stock v2_0_09",
+        "evidence": evidence,
+        "candidates": [compare_spec(spec, evidence) for spec in SPECS],
+        "interpretation": (
+            "Elimination is possible with original firmware static evidence; "
+            "passing resource checks cannot reveal MCU manufacturer or marking."
+        ),
+        "unresolved": [
+            "Actual CPUID, AT32 DEBUG_IDCODE PID, project model byte, and Flash size ID",
+            "Compatibility of PLL extended bit interpretation with vendor CRM_CFG",
+            "Whether the XL99?1Q top marking is a custom code and its real vendor",
+            "Actual physical Flash and SRAM boundaries, board wiring and revision",
+        ],
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("firmware", type=Path)
+    p.add_argument("--json", action="store_true")
+    args = p.parse_args(argv)
+    result = analyze(decoded_payload(args.firmware.read_bytes()))
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+    else:
+        e = result["evidence"]
+        print("Evidence:", e)
+        for row in result["candidates"]:
+            print(row["part"], row["status"], "; ".join(row["failures"]))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
