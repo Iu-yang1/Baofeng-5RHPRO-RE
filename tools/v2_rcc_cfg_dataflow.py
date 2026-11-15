@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 import struct
 
-from capstone import Cs, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_LITTLE_ENDIAN, CS_GRP_JUMP
+from capstone import Cs, CsError, CS_ARCH_ARM, CS_MODE_THUMB, CS_MODE_LITTLE_ENDIAN, CS_GRP_JUMP
 from capstone.arm import (
     ARM_OP_IMM, ARM_OP_MEM, ARM_OP_REG, ARM_REG_PC, ARM_REG_SP,
     ARM_REG_LR, ARM_REG_R0, ARM_REG_R1, ARM_REG_R2, ARM_REG_R3, ARM_REG_R12,
@@ -221,7 +221,7 @@ def transfer(data: bytes, ins, before: State) -> tuple[State, list[dict], list[d
     # its result as an unconditional fact.
     try:
         _, changed = ins.regs_access()
-    except Cs.CsError:
+    except CsError:
         changed = []
     for reg in changed:
         if reg == ARM_REG_SP and after.sp is not None and m not in ("push", "pop", "add", "adds", "addw", "sub", "subs", "subw"):
@@ -302,6 +302,7 @@ def mov_pair_seeds(data: bytes) -> list[int]:
     """Find adjacent MOVW/MOVT RCC base constructions; verify with disassembler."""
     md = new_decoder()
     lows: dict[int, list[tuple[int, int]]] = {}
+    all_movw: list[int] = []
     seeds = set()
     for offset in range(0, len(data) - 3, 2):
         h = struct.unpack_from("<H", data, offset)[0]
@@ -315,12 +316,22 @@ def mov_pair_seeds(data: bytes) -> list[int]:
         if len(op) != 2 or op[0].type != ARM_OP_REG or op[1].type != ARM_OP_IMM:
             continue
         reg, imm = op[0].reg, op[1].imm
-        if ins.mnemonic == "movw" and 0x1000 <= imm < 0x2000:
-            lows.setdefault(reg, []).append((pc, imm))
+        if ins.mnemonic == "movw":
+            all_movw.append(pc)
+            if 0x1000 <= imm < 0x2000:
+                lows.setdefault(reg, []).append((pc, imm))
         elif ins.mnemonic == "movt" and imm == 0x4002:
             for start, _ in reversed(lows.get(reg, [])):
                 if 0 < pc - start <= MAX_MOVW_TO_MOVT_BYTES:
                     seeds.add(start)
+                    # Also inspect a short prologue before the RCC pointer
+                    # construction for same-function SRAM intermediary facts.
+                    # These are candidate starts, not verified entry points.
+                    for earlier in reversed(all_movw):
+                        if 0 < start - earlier <= 32:
+                            seeds.add(earlier)
+                        elif start - earlier > 32:
+                            break
                     break
     return sorted(seeds)
 
@@ -370,7 +381,7 @@ def scan(data: bytes, per_seed_limit: int = MAX_VISITS) -> dict:
         "limits": [
             "All CFG paths originate at a candidate source instruction, not a verified function entry.",
             "Conditional paths are treated as may paths; findings do not prove runtime execution.",
-            "MOVW/MOVT seeds require the same register and <=96 bytes between instructions.",
+            "MOVW/MOVT seeds require the same register and <=96 bytes between instructions; preceding MOVW within 32 bytes is also a candidate SRAM-provenance start.",
             "Only PC-relative RCC literal bases and MOVW/MOVT pairs ending in 0x40021xxx are seeded.",
             "RAM/stack contents are tracked only within one path until unknown stores or calls.",
             "Unknown indirect targets, register offsets, DMA, ROM-internal stores, and other address constructions remain unresolved.",
