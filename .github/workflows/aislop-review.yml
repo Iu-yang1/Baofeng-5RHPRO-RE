@@ -1,0 +1,34 @@
+name: aislop change review
+
+on:
+  pull_request:
+  push:
+    branches:
+      - "feature/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Review changed Python/Rust code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Scan branch changes against master
+        run: |
+          git fetch origin master
+          npx --yes aislop@latest scan --changes --base origin/master --json > aislop-review.json
+          cat aislop-review.json
+      - name: Preserve review report
+        uses: actions/upload-artifact@v4
+        with:
+          name: aislop-review
+          path: aislop-review.json
+          if-no-files-found: error
