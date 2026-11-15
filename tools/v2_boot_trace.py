@@ -25,7 +25,7 @@ from mcu_fingerprint import decoded_payload
 
 FLASH_ORIGIN = 0x08001000  # Hypothesis from all six XOR-decoded reset vectors
 MAX_VISITED = 120_000
-VECTOR_WORDS = 80
+VECTOR_WORDS = 64
 LITERAL_ADDRESS_MIN = 0x40000000
 LITERAL_ADDRESS_MAX = 0x60000000
 # Thumb-2 forms beyond the ARMv6-M subset are useful architectural clues.
@@ -154,7 +154,7 @@ def trace(payload: bytes, instruction_limit: int = MAX_VISITED) -> dict:
         "flash_origin_hypothesis": f"0x{FLASH_ORIGIN:08X}",
         "initial_stack_pointer_candidate": f"0x{vectors[0]:08X}" if vectors else None,
         "reset_candidate": f"0x{vectors[1]:08X}" if len(vectors)>1 else None,
-        "vectors_first_80": [f"0x{x:08X}" for x in vectors],
+        "vectors_first_64": [f"0x{x:08X}" for x in vectors],
         "vector_valid_thumb_entries": len(entries),
         "vector_unique_entry_points": len(roots),
         "vector_zero_entries": sum(1 for x in vectors if x == 0),
@@ -190,8 +190,8 @@ def trace(payload: bytes, instruction_limit: int = MAX_VISITED) -> dict:
 
 
 def compare(first: dict, second: dict) -> dict:
-    fvec = first["vectors_first_80"]
-    svec = second["vectors_first_80"]
+    fvec = first["vectors_first_64"]
+    svec = second["vectors_first_64"]
     different = [
         {"index": i, "older": a, "newer": b}
         for i, (a, b) in enumerate(zip(fvec, svec))
