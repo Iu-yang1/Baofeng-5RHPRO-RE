@@ -72,6 +72,10 @@ jobs:
         run: |
           python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08024BBC:0x08030C30:0x94
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08024BBC --end 0x08024C58
+      - name: Inspect C runtime SRAM data copying and clock table initialization
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001220 --end 0x08001300
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803240E --end 0x0803248C
       - name: Archive read-only metadata only
         uses: actions/upload-artifact@v4
         with:
