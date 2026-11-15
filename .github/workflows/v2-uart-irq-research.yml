@@ -34,6 +34,16 @@ jobs:
         run: |
           python tools/clock_register_trace.py --scope vectors --show-context --pc-from 0x08001000 --pc-to 0x08034000 firmware/BF_5RH_501_v2_0_9.dat > v2-register-writes.txt
           grep -A 7 -B 1 ' -> CRM/RCC CFG/CFGR write' v2-register-writes.txt | head -160 || true
+      - name: Disassemble actual USART IRQ handlers and their shared routines
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032B00 --end 0x08032C28
+      - name: Inspect application UART data producer consumer contexts
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080063A0 --end 0x08006430
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080186D0 --end 0x08018780
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800CA88 --end 0x0800CB10
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08010366 --end 0x080103DE
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08018C50 --end 0x08018CCC
       - name: Upload metadata (no decoded firmware image)
         uses: actions/upload-artifact@v4
         with:
