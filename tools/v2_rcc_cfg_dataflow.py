@@ -347,6 +347,26 @@ def candidate_seeds(data: bytes) -> dict:
     return {"pc_relative_literal": literals, "movw_movt_candidate": mov_pair_seeds(data)}
 
 
+def verified_entry_context(data: bytes) -> dict:
+    """Independently inspect original vector root and shared helper entry.
+
+    The vector is a *firmware-specified* entry, not an observed PC. An
+    indirect ROM callback remains unknown because system ROM is absent.
+    """
+    if len(data) < 0x400:
+        return {}
+    reset_vector = struct.unpack_from("<I", data, 4)[0]
+    roots = {"reset_vector_entry": reset_vector & ~1}
+    # The shared helper has been independently byte-verified in V1 and V2.
+    if data[0x08001260 - BASE:0x08001264 - BASE] == bytes.fromhex("2de9f04f"):
+        roots["shared_rom_helper"] = 0x08001260
+    output = {}
+    for name, pc in roots.items():
+        if (reset_vector & 1) and BASE <= pc <= BASE + len(data) - 4:
+            output[name] = walk_cfg(data, pc, 320)
+    return output
+
+
 def scan(data: bytes, per_seed_limit: int = MAX_VISITS) -> dict:
     roots = candidate_seeds(data)
     candidate_stores = {}
@@ -372,6 +392,7 @@ def scan(data: bytes, per_seed_limit: int = MAX_VISITS) -> dict:
         "seed_count_by_type": {name: len(rows) for name, rows in roots.items()},
         "all_seeds": {name: [hx(x) for x in rows] for name, rows in roots.items()},
         "old_linear_unique_store_count": len(old_sites),
+        "verified_entry_context": verified_entry_context(data),
         "cfg_candidate_store_count": len(recovered),
         "new_vs_linear_candidates": new_sites,
         "cfg_candidate_stores": recovered,
