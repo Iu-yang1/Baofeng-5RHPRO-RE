@@ -87,8 +87,6 @@ def inspect_tables(payload: bytes) -> dict:
     else:
         trailing = 0
 
-    # 0x20000014..0x2000001F: the 4-byte ADC divisor lookup and first 8
-    # AHB/APB shift values actually used by clock getter 0x08030C30.
     adc = tuple(expanded[TABLE_CLOCK_ADC-SRAM_BASE:TABLE_CLOCK_APB-SRAM_BASE])
     clock = tuple(expanded[TABLE_CLOCK_APB-SRAM_BASE:TABLE_CLOCK_APB-SRAM_BASE+16])
     return {
