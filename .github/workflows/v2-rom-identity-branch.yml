@@ -1,0 +1,61 @@
+name: V2 ROM identity branch reverse engineering
+
+on:
+  push:
+    branches:
+      - "research/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Thumb disassembler
+        run: python -m pip install "capstone==5.0.6"
+      - name: Run offline regression suite
+        run: python -m unittest discover -s tests -v
+      - name: Inspect V2 UID boot ROM dispatch (not a model-ID lookup)
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001250 --end 0x08001356
+      - name: Inspect the calling context before and after ROM dispatch
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001200 --end 0x08001282
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001340 --end 0x080013CC
+      - name: Compare corresponding V1 startup and UID branch
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001250 --end 0x08001356
+          python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08001280:0x08001280:0xD8
+      - name: Verify actual V2 ROM dispatch and equivalent V1 machine code
+        run: |
+          python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+          python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-bootrom-identity-metadata.json
+      - name: Check if ROM helper is directly called from the actual application
+        run: |
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x08001260 --target 0x0800134C --target 0x08001396 --target 0x0803235E
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v1_1_04.dat --target 0x08001260 --target 0x0800134C --target 0x08001396 --target 0x0802622A
+      - name: Inspect verified direct caller of early ROM helper
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803235E --end 0x080323B8
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080261EC --end 0x0802628A
+      - name: Identify application context that calls ROM helper wrapper
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08017380 --end 0x0801744A
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080111A4 --end 0x08011250
+      - name: Search special literal targets in original firmware
+        run: |
+          python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat
+      - name: Archive only public-code-derived ROM branch evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: uv5rhpro-v2-bootrom-uid-control-flow
+          path: v2-bootrom-identity-metadata.json
+          if-no-files-found: error

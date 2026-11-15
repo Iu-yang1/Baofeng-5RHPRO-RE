@@ -86,6 +86,14 @@ python tools/at32_readonly_id_decode.py --cpuid 0x410FC241 --debug-id 0x700502CE
 
 The identification scripts operate read-only on the stock package or supplied numeric IDs. No physical SWD identity read was performed.
 
+### Pro V2 UID/ROM helper comparison
+
+[Boot ROM/UID conditional dispatch research (简体中文)](docs/v2-0-09-bootrom-uid-dispatch.zh-CN.md) reconstructs a firmware-visible ROM callback at `0x1FFFD000+0x0C`, UID low-word byte comparisons (not the official Artery series ID), two complementary writes to `0x4002228C`, and the actual V2 application call chain. The exact helper machine code from `0x08001280` is **216/216 bytes identical** across V1.1.04 and V2.0.09. This does **not** identify the MCU or prove the helper runs on every startup.
+
+```sh
+python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+```
+
 ## Original collected utilities
 
 - `fwtool.py`: package XOR packing/unpacking tool.
