@@ -1,0 +1,40 @@
+name: V2 MCU identity elimination against official data
+
+on:
+  push:
+    branches:
+      - "research/**"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Capstone disassembler
+        run: python -m pip install "capstone==5.0.6"
+      - name: Run original-firmware regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Compare memory / peripherals / package against candidate MCU datasheets
+        run: |
+          python tools/v2_mcu_candidate_matrix.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_mcu_candidate_matrix.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-mcu-matrix.json
+      - name: Check original clock getter high PLL bit behavior
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08030C48 --end 0x08030C80
+          python tools/v2_clock_tree_model.py firmware/BF_5RH_501_v2_0_9.dat
+      - name: Check example official AT32 PID only (synthetic, no hardware)
+        run: python tools/at32_readonly_id_decode.py --cpuid 0x410FC241 --debug-id 0x700502CE --project-byte 0x07
+      - name: Preserve evidence metadata only
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-mcu-part-family-comparison
+          path: v2-mcu-matrix.json
+          if-no-files-found: error
