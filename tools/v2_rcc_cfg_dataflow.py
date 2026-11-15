@@ -181,9 +181,7 @@ def transfer(data: bytes, ins, before: State) -> tuple[State, list[dict], list[d
     pc = ins.address
     conditional = ins.cc not in (0, 15)  # Capstone invalid / ARM_CC_AL.
     writes, events = _memory_effect(data, ins, before, after, conditional)
-    if m in LOADS:
-        pass
-    elif m in ("movw", "movt") and len(op) >= 2 and op[0].type == ARM_OP_REG:
+    if m in ("movw", "movt") and len(op) >= 2 and op[0].type == ARM_OP_REG:
         dest = op[0].reg
         imm = _imm(op[1])
         if imm is not None:
