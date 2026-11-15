@@ -127,3 +127,8 @@ python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmwar
 自主 Rust `no_std` 核心不需要因为新的 128 MHz 线索立即改变硬件目标；真正的板级 HAL 应采用时钟状态模型，USART/TIM 驱动在完成时钟切换后读取当前 PCLK（或从同一个可信 `ClockTree` 状态快照取得），再计算 BRR、PSC 和超时。若支持动态切换，则必须重新配置依赖的外设时基。当前仍未确认实际 MCU、引脚表、Flash 容量及安全恢复流程，因此**只提交研究与主机回归，不产生可刷写镜像**。
 
 前序资料：[AIR32 SDK 指纹报告](v2-0-09-air32-sdk-fingerprint.zh-CN.md)、[时钟树数据流](v2-0-09-clock-tree-dataflow.zh-CN.md)、[ROM/UID 分支](v2-0-09-bootrom-uid-dispatch.zh-CN.md)。
+
+
+### 2026-11-15 补充：直接 RCC MMIO 写入与 UID 分支
+
+[新增 ROM/RCC MMIO 审计](v2-0-09-rom-cfgr-mmio-audit.zh-CN.md) 恢复 `0x1C` 分支的 `RCC_CFGR` 清位/设置操作，及所有 UID 分支共同的 PLL 时钟来源写入。有限静态扫描在 V1/V2 各发现 26 个寄存器基址文字池引用点和去重后 30 个本地存储候选，集中在 ROM 支持、标准 RCC 库和 Reset 初始化区域。**这是受限范围内的未发现运行态写入，不是已证明所有间接路径均不存在**。128 MHz 仍为条件性请求。
