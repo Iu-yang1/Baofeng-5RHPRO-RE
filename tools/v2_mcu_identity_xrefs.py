@@ -21,10 +21,12 @@ from mcu_fingerprint import decoded_payload
 BASE = 0x08001000
 CANDIDATES = {
     0xE000ED00: "ARM CPUID",
-    0xE0042000: "AT32 DEBUG_IDCODE",
-    0x1FFFF7E0: "Artery Flash size address, device-dependent",
-    0x1FFFF7F3: "Artery project-type byte address",
-    0x1FFFF7E8: "Artery UID region (avoid dumping unique identity)",
+    0xE0042000: "vendor DEBUG_IDCODE (compare full Artery PID; not SW-DP DPIDR)",
+    0x1FFFF7E0: "F_SIZE (ST/Artery: low 16 bits KiB; hardware-dependent)",
+    0x1FFFF7F3: "Artery Project ID / UID[95:88] byte",
+    0x1FFFF7E8: "UID[31:0]: LuatOS AIR32 pattern or generic UID; no real UID dump",
+    0x1FFFF7EC: "UID[63:32] (device-unique; no hardware read)",
+    0x1FFFF7F0: "UID[95:64] (Artery Series ID in [95:88])",
     0x40022000: "STM32F1-style FLASH controller",
     0x40016C00: "AT32F403A/407-compatible I2S2EXT candidate",
     0x1FFFD000: "System boot ROM pointer table candidate",

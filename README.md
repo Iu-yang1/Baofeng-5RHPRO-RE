@@ -56,6 +56,28 @@ python tools/usart_clock_callers.py firmware/BF_5RH_501_v2_0_9.dat
 
 Read the [function-level V2 clock tree / UART / timer reverse-engineering report (简体中文)](docs/v2-0-09-clock-tree-dataflow.zh-CN.md) for the complete register addresses, machine-code evidence, limitations and V1/V2 comparison.
 
+### Original V1/V2 MCU electronic-ID cross-check (read-only analysis)
+
+The firmware uses an **AIR32-style UID[31:0] dispatch** at `0x1FFFF7E8`,
+but no live device UID, Flash F_SIZE, ARM CPUID, Artery DEBUG_IDCODE,
+Artery Project ID, or SW-DP DPIDR has been measured. The Artery
+AT32F403A/407 Series ID is in UID[95:88] at `0x1FFFF7F3`; its
+`0xE0042000` device PID is distinct from the SWD-port DPIDR. Neither
+CPUID nor an ARM SW-DP DPIDR identifies the MCU vendor. Stock V1/V2
+image literal xrefs and a privacy-preserving **offline only** decoder now
+have automated regression tests.
+
+[Read the vendor-specific identification table and limitations (简体中文)](docs/v1-v2-mcu-readonly-id-evidence.zh-CN.md).
+
+```sh
+python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
+python tools/mcu_readonly_id_evidence.py --cpuid 0x410FC241 --flash-size-halfword 0x0200 --debug-id 0x700502CE --project-byte 0x07 --dpidr 0x2BA01477
+```
+
+The numeric IDs in the example above are *published test fixtures*, not
+measurements from the user's radio. Full device-unique UIDs are never
+echoed to reports.
+
 ### V2 USART/GNSS and independent firmware architecture
 
 Stock V2.0.09 instruction-backed evidence now links **USART2 9600 baud + DMA1 CH6 + IDLE ISR** to a real **NMEA GGA decoder**; USART3 **19200 baud + DMA1 CH3** implements an XOR-encoded transmit protocol, and USART1 **115200 baud** uses an interrupt-driven 20-byte receive ring. Roles of USART1 and USART3 remain under investigation.
