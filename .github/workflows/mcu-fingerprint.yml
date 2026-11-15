@@ -18,15 +18,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install read-only disassembler
+        run: python -m pip install "capstone==5.0.6"
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
-      - name: Compare package address patterns (no device access)
+      - name: Raw aligned-word inventory (diagnostic only; not an MCU ID)
         run: |
-          python tools/mcu_fingerprint.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat
-          python tools/mcu_fingerprint.py --json firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat > mcu-fingerprint.json
+          python tools/mcu_fingerprint.py --json firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat > mcu-raw-words.json
+      - name: Follow Cortex-M Thumb paths to actual PC-relative literals
+        run: |
+          python tools/cortex_m_literals.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat
+          python tools/cortex_m_literals.py --json firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat > mcu-thumb-literals.json
       - name: Upload evidence-only JSON
         uses: actions/upload-artifact@v4
         with:
           name: mcu-fingerprint-json
-          path: mcu-fingerprint.json
+          path: |
+            mcu-raw-words.json
+            mcu-thumb-literals.json
           if-no-files-found: error
