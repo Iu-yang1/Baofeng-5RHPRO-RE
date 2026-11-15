@@ -26,6 +26,11 @@ jobs:
         run: |
           python tools/clock_register_trace.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/clock_register_trace.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-clock-reset.json
+      - name: Inspect the V2 clock reset and PLL initialization instruction context
+        run: |
+          python tools/clock_register_trace.py --show-context --pc-from 0x080323D0 --pc-to 0x08032470 firmware/BF_5RH_501_v2_0_9.dat
+          python tools/clock_register_trace.py --show-context --pc-from 0x08031BE0 --pc-to 0x08031C90 firmware/BF_5RH_501_v2_0_9.dat
+          python tools/clock_register_trace.py --show-context --pc-from 0x08030BE0 --pc-to 0x08030C80 firmware/BF_5RH_501_v2_0_9.dat
       - name: Compare V1.1.04 and V2.0.09 across vector-seeded paths
         run: |
           python tools/clock_register_trace.py --scope vectors --json firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat > v1-v2-clock-vectors.json
