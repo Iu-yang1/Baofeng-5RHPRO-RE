@@ -358,7 +358,8 @@ def verified_entry_context(data: bytes) -> dict:
     reset_vector = struct.unpack_from("<I", data, 4)[0]
     roots = {"reset_vector_entry": reset_vector & ~1}
     # The shared helper has been independently byte-verified in V1 and V2.
-    if data[0x08001260 - BASE:0x08001264 - BASE] == bytes.fromhex("2de9f04f"):
+    helper = decode(new_decoder(), data, 0x08001260)
+    if helper and helper.mnemonic.startswith("push") and "lr" in helper.op_str:
         roots["shared_rom_helper"] = 0x08001260
     output = {}
     for name, pc in roots.items():
