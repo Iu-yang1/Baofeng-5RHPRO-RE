@@ -76,6 +76,9 @@ jobs:
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001220 --end 0x08001300
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803240E --end 0x0803248C
+      - name: Locate V2 C startup SRAM initialization and prescaler table source
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001EA4 --end 0x08001FC0
       - name: Archive read-only metadata only
         uses: actions/upload-artifact@v4
         with:
