@@ -165,9 +165,9 @@ def interpret(
         "Do not interpret a missing address read or all-ones/all-zeros as an actual valid chip ID.",
         "No external Flash, ROM function body, UID, SWD access protection, or on-board data was dumped.",
     ]
-    if core["core_name"] == "Cortex-M3" and at_part:
+    if core["core_name"] == "Cortex-M3" and artery["pid_table_match"] is not None:
         limits.append("An AT32F403A/407 PID with Cortex-M3 conflicts with its published Cortex-M4F core.")
-    if core["core_name"] == "Cortex-M4" and air_model:
+    if core["core_name"] == "Cortex-M4" and air["matches_documented_air32_uid_pattern"] is not None:
         limits.append("An AIR32F103 UID pattern with Cortex-M4 conflicts with the published Cortex-M3 core.")
     if flash["meets_firmware_address_requirement"] is False:
         limits.append("Reported capacity is smaller than the stock startup-readable high Flash address; verify mapping, aliases and that the read is genuine.")
