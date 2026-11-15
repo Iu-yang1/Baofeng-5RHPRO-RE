@@ -78,6 +78,11 @@ jobs:
         run: |
           python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
           python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-pll-runtime-order.json
+      - name: Inspect V1 PLL wrapper and its timer clock query for version comparison
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x0802622A --end 0x080262AA
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080130A0 --end 0x08013130
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001234 --end 0x08001244
       - name: Archive only public-code-derived ROM branch evidence
         uses: actions/upload-artifact@v4
         with:
