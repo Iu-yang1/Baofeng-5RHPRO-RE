@@ -259,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("v2", type=Path)
     p.add_argument("--v1", type=Path)
     p.add_argument("--json", action="store_true")
+    p.add_argument("--show-writes", action="store_true", help="list bounded store candidates")
     a = p.parse_args(argv)
     result = analyze(decoded_payload(a.v2.read_bytes()),
                      decoded_payload(a.v1.read_bytes()) if a.v1 else None)
@@ -275,6 +276,10 @@ def main(argv: list[str] | None = None) -> int:
             if item:
                 print(image, "literal references", len(item["literal_load_candidate_sites"]),
                       "local write candidates", len(item["straight_line_store_candidates"]))
+                if a.show_writes:
+                    for event in item["straight_line_store_candidates"]:
+                        print(" ", event["load_pc"], "→", event["store_pc"],
+                              event["address"], event["mnemonic"], event["operands"])
     return 0
 
 
