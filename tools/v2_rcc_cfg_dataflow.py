@@ -129,16 +129,14 @@ def _operand_value(state: State, op) -> tuple[int, int]:
     return UNKNOWN
 
 
-def transfer(data: bytes, ins, before: State) -> tuple[State, list[dict], list[dict]]:
-    """Abstractly interpret one instruction; unknown writes drop known facts."""
-    after = before.clone()
+def _memory_effect(data: bytes, ins, before: State, after: State,
+                   conditional: bool) -> tuple[dict, list[dict]]:
+    """Track an exact memory operand, preserving only proven local aliases."""
     m = ins.mnemonic.split(".")[0]
     op = ins.operands
-    writes: dict[int, tuple[int, int]] = {}
-    events = []
-    indirect = []
     pc = ins.address
-    conditional = ins.cc not in (0, 15)  # Capstone invalid / ARM_CC_AL.
+    writes: dict[int, tuple[int, int]] = {}
+    events: list[dict] = []
     if m in STORES and len(op) >= 2 and op[1].type == ARM_OP_MEM:
         dest = base_address(before, op[1].mem, pc)
         value = _operand_value(before, op[0])
@@ -171,6 +169,20 @@ def transfer(data: bytes, ins, before: State) -> tuple[State, list[dict], list[d
                 ):
                     result = before.memory.get(address, UNKNOWN)
         writes[op[0].reg] = result
+    return writes, events
+
+
+def transfer(data: bytes, ins, before: State) -> tuple[State, list[dict], list[dict]]:
+    """Abstractly interpret one instruction; unknown writes drop known facts."""
+    after = before.clone()
+    m = ins.mnemonic.split(".")[0]
+    op = ins.operands
+    indirect = []
+    pc = ins.address
+    conditional = ins.cc not in (0, 15)  # Capstone invalid / ARM_CC_AL.
+    writes, events = _memory_effect(data, ins, before, after, conditional)
+    if m in LOADS:
+        pass
     elif m in ("movw", "movt") and len(op) >= 2 and op[0].type == ARM_OP_REG:
         dest = op[0].reg
         imm = _imm(op[1])
@@ -298,6 +310,24 @@ def walk_cfg(payload: bytes, entry: int, limit: int = MAX_VISITS) -> dict:
     }
 
 
+def _rcc_movt_starts(pc: int, reg: int,
+                     lows: dict[int, list[tuple[int, int]]],
+                     all_movw: list[int]) -> set[int]:
+    """Select a matched RCC MOVW plus nearby SRAM-provenance candidates."""
+    start = next((old for old, _ in reversed(lows.get(reg, []))
+                  if 0 < pc - old <= MAX_MOVW_TO_MOVT_BYTES), None)
+    if start is None:
+        return set()
+    roots = {start}
+    for earlier in reversed(all_movw):
+        delta = start - earlier
+        if delta > 32:
+            break
+        if delta > 0:
+            roots.add(earlier)
+    return roots
+
+
 def mov_pair_seeds(data: bytes) -> list[int]:
     """Find adjacent MOVW/MOVT RCC base constructions; verify with disassembler."""
     md = new_decoder()
@@ -321,18 +351,7 @@ def mov_pair_seeds(data: bytes) -> list[int]:
             if 0x1000 <= imm < 0x2000:
                 lows.setdefault(reg, []).append((pc, imm))
         elif ins.mnemonic == "movt" and imm == 0x4002:
-            for start, _ in reversed(lows.get(reg, [])):
-                if 0 < pc - start <= MAX_MOVW_TO_MOVT_BYTES:
-                    seeds.add(start)
-                    # Also inspect a short prologue before the RCC pointer
-                    # construction for same-function SRAM intermediary facts.
-                    # These are candidate starts, not verified entry points.
-                    for earlier in reversed(all_movw):
-                        if 0 < start - earlier <= 32:
-                            seeds.add(earlier)
-                        elif start - earlier > 32:
-                            break
-                    break
+            seeds.update(_rcc_movt_starts(pc, reg, lows, all_movw))
     return sorted(seeds)
 
 
