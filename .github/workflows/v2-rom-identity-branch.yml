@@ -37,6 +37,10 @@ jobs:
         run: |
           python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
           python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-bootrom-identity-metadata.json
+      - name: Verify AIR32 SDK lineage, PLL request, and unknown silicon identity
+        run: |
+          python tools/v2_air32_sdk_fingerprint.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+          python tools/v2_air32_sdk_fingerprint.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-air32-sdk-fingerprint.json
       - name: Check if ROM helper is directly called from the actual application
         run: |
           python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x08001260 --target 0x0800134C --target 0x08001396 --target 0x0803235E
@@ -57,5 +61,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: uv5rhpro-v2-bootrom-uid-control-flow
-          path: v2-bootrom-identity-metadata.json
+          path: |
+            v2-bootrom-identity-metadata.json
+            v2-air32-sdk-fingerprint.json
           if-no-files-found: error
