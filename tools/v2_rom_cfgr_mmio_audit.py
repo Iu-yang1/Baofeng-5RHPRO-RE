@@ -226,12 +226,12 @@ def scan_local_rcc_writes(payload: bytes) -> dict:
     findings = {}
     for pc in sorted(set(refs)):
         for row in _local_writes(payload, pc):
-            findings[(row["load_pc"], row["store_pc"], row["address"])] = row
+            findings.setdefault((row["store_pc"], row["address"]), row)
+    unique = sorted(findings.values(), key=lambda x: (x["store_pc"], x["address"]))
     return {
+        "unique_local_store_candidates": len(unique),
         "literal_load_candidate_sites": [f"0x{pc:08X}" for pc in sorted(set(refs))],
-        "straight_line_store_candidates": sorted(
-            findings.values(), key=lambda x: (x["store_pc"], x["address"])
-        ),
+        "straight_line_store_candidates": unique,
         "scope": (
             "PC-relative exact base literals 0x40021000/0x40021004/0x400210F0; "
             "max 32 straight-line instructions; stop at call/branch; "
