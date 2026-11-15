@@ -44,6 +44,11 @@ jobs:
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800CA88 --end 0x0800CB10
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08010366 --end 0x080103DE
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08018C50 --end 0x08018CCC
+      - name: Inspect USART2 DMA receive completion parser and USART3 buffer state
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800F168 --end 0x0800F2A8
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032B28 --end 0x08032B40
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080063BC --end 0x0800641C
       - name: Upload metadata (no decoded firmware image)
         uses: actions/upload-artifact@v4
         with:
