@@ -29,6 +29,19 @@ Read [P0 research and acceptance criteria (简体中文)](docs/p0-firmware-resea
 
 **Clock-reconstruction status:** the decoded V2.0.09 startup code enables an external high-speed clock, programs PLL source/multiplier fields and switches the system clock. Register interpretations currently follow the AT32F403A/407-compatible map; the exact MCU, physical crystal frequency and absolute CPU frequency are not verified. Tools do not connect to radio hardware.
 
+### UART/TIM cross-version SDK fingerprint
+
+The V2 firmware contains a UART baud-rate calculation matching the structure of the STM32F4 Standard Peripheral Library `USART_Init` routine, including OVER8-sensitive fraction rounding. USART and timer instruction windows in archived V1 and V2 firmware align at the same `+0xC134` offset and each tested 24-byte window matches exactly. **This suggests shared SDK routines, not that the actual MCU is an STM32F4.**
+
+Run (Python 3.10+, Capstone 5):
+
+```sh
+python tools/peripheral_clock_constraints.py firmware/BF_5RH_501_v2_0_9.dat
+python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08026C50:0x08032D84:24 --pair 0x0802640C:0x08032540:24
+```
+
+See [V2 UART/TIM SDK fingerprint report (简体中文)](docs/v2-0-09-uart-timer-sdk-fingerprint.zh-CN.md).
+
 ## Original collected utilities
 
 - `fwtool.py`: package XOR packing/unpacking tool.
