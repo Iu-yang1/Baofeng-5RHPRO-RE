@@ -83,6 +83,10 @@ jobs:
         run: |
           python tools/v2_scatterload_regions.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_scatterload_regions.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-scatterload-regions.json
+      - name: Recover original SRAM clock lookup table from compressed scatterload
+        run: |
+          python tools/v2_scatterload_decode.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_scatterload_decode.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-reconstructed-sram-clock-table.json
       - name: Archive read-only metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -93,4 +97,5 @@ jobs:
             v2-timer-caller-constraints.json
             v2-usart-caller-constraints.json
             v2-scatterload-regions.json
+            v2-reconstructed-sram-clock-table.json
           if-no-files-found: error
