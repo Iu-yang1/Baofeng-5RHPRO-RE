@@ -43,7 +43,7 @@ jobs:
           python tools/thumb_callsites.py firmware/BF_5RH_501_v1_1_04.dat --target 0x08001260 --target 0x0800134C --target 0x08001396
       - name: Inspect verified direct caller of early ROM helper
         run: |
-          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032320 --end 0x080323B8
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0803235E --end 0x080323B8
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x080261EC --end 0x0802628A
       - name: Search special literal targets in original firmware
         run: |
