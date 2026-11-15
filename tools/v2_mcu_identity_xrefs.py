@@ -29,6 +29,8 @@ CANDIDATES = {
     0x40016C00: "AT32F403A/407-compatible I2S2EXT candidate",
     0x1FFFD000: "System boot ROM pointer table candidate",
     0x40021000: "STM32F1/AT32 CRM/RCC",
+    0x40021004: "RCC CFGR configuration register",
+    0x400210F0: "AIR32-compatible internal syscfg gate address",
     0x40020400: "DMA2 candidate",
 }
 
