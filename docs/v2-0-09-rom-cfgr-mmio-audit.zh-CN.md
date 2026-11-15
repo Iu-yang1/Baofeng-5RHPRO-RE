@@ -78,3 +78,8 @@ python tools/v2_rom_cfgr_mmio_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmw
 新测试用原厂真实指令验证所有关键位运算、ROM 参数和 V1/V2 共享字节；再人为修改 CFGR 掩码和 `STR` 指令，要求工具拒绝。扫描路径独立保留 V1/V2 数据，不生成固件、不连接硬件。也不把通过主机测试等同实测时钟或芯片身份。
 
 参考：<https://wiki-zh.luatos.org/chips/air32f103/enhancement.html>（AIR32 高速 PLL 官方文档）、[之前 AIR32 SDK 指纹研究](v2-0-09-air32-sdk-fingerprint.zh-CN.md)。
+
+
+## 2026-11-15：跨基本块数据流补证
+
+[跨基本块 RCC 地址与指针传播分析](v1-v2-rcc-cfg-dataflow.zh-CN.md) 新增了 Thumb 分支追踪、`MOVW/MOVT` 配对、栈及 SRAM 中转和间接寄存器调用候选。原厂 V1/V2 每版均恢复 43 个唯一 RCC 写入候选，比本文有界单基本块扫描新增 13 个，集中于 RCC 库函数和早期初始化区域。原有 30 的统计仍是先前算法真实输出，而不是完整硬件寄存器写入数；仍不能排除间接函数调用或 ROM 内部时钟修改。 

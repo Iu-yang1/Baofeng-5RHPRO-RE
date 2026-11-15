@@ -101,6 +101,23 @@ access at `0x08061A54`; software lineage must not be confused with physical part
 python tools/v2_air32_sdk_fingerprint.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
 ```
 
+### Pro V1/V2 inter-basic-block RCC alias trace
+
+[中文技术报告：Thumb CFG / MOVW-MOVT / SRAM 寄存器指针分析](docs/v1-v2-rcc-cfg-dataflow.zh-CN.md)
+adds branch-aware constant propagation, conservative stack/SRAM pointer
+round-trips, and register-indirect branch resolution to the firmware
+research tooling. Both stock V1/V2 images yield **43 candidate RCC
+store/instruction pairs**, including **13 newly recovered** compared
+with the earlier 30-site straight-line scan; known RCC MOVW/MOVT pairs
+within the tested 96-byte window were not found in either stock image.
+These are *possible static paths*, not observed execution or proof that
+runtime clock switching is absent. Unknown ROM callbacks and physical
+MCU identity remain unresolved.
+
+```sh
+python tools/v2_rcc_cfg_dataflow.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json
+```
+
 ### Pro V2 ROM UID-branch CFGR and bounded RCC MMIO audit
 
 [中文：ROM 分支及 RCC 直接寄存器写入审计](docs/v2-0-09-rom-cfgr-mmio-audit.zh-CN.md)

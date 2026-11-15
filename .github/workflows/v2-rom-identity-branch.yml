@@ -65,6 +65,10 @@ jobs:
         run: |
           python tools/v2_rom_cfgr_mmio_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --show-writes
           python tools/v2_rom_cfgr_mmio_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-rom-cfgr-mmio-audit.json
+      - name: Analyze possible cross-block RCC constants, SRAM aliases, and indirect calls
+        run: |
+          python tools/v2_rcc_cfg_dataflow.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+          python tools/v2_rcc_cfg_dataflow.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-rcc-cfg-dataflow.json
       - name: Archive only public-code-derived ROM branch evidence
         uses: actions/upload-artifact@v4
         with:
@@ -74,4 +78,5 @@ jobs:
             v2-air32-sdk-fingerprint.json
             v2-pll-runtime-order.json
             v2-rom-cfgr-mmio-audit.json
+            v2-rcc-cfg-dataflow.json
           if-no-files-found: error
