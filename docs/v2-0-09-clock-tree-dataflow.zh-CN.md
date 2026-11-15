@@ -100,7 +100,7 @@ cfg |= 0x00000002;    // 0x08031C7E：请求 SYSCLK 选择 PLL
 
 **特殊保留条件：** 原厂启动清除位域时保留 CFG bit28；`0x08030C58` 查询函数却用它参与倍频计算。若这个位在进入代码前**已是 1**，固件的软件解释可以变为 `(4|16)+1=21`，即推得 `8MHz ×21 =168MHz`。这是工具单独报告的**条件分支示例**，并非 168 MHz 实机证据；它甚至可能因真实硬件位义不同而不是可用的时钟配置。
 
-**厂商位定义重要差异：** [Artery AT32F403A/407 Reference Manual](https://doc.platan.ru/pdf/datasheets/artery/RM_AT32F403A_407_EN_V2_02.pdf) 把 PLL 倍频扩展定义在 **bits30:29**，bit28 则涉及 USB 分频；这与本固件 `0x08030C58` 的解释**不一致**。AT32F403A 不能因使用相似 CRM 基址就被认定为该固件的真实 MCU。另一方面 [ST RM0008](https://www.st.com/resource/en/reference_manual/rm0008-stm32f101-stm32f102-stm32f103-stm32f105-and-stm32f107-advanced-armbased-32bit-mcus-stmicroelectronics.pdf) 的 STM32F1 PLL×6/APB1 /2、定时器 x2 语义与默认分支吻合，但它也不能唯一确认厂商。
+**厂商位定义重要差异：** [Artery AT32F403A/407 Reference Manual](https://doc.platan.ru/pdf/datasheets/artery/RM_AT32F403A_407_EN_V2_02.pdf) 把 PLL 倍频扩展定义在 **bits30:29**，bit28 是 **ADC 分频 ADCDIV 扩展位**（USB 分频是 bits27、23:22），而 V2 时钟查询代码用 bit28 选择 PLL 倍频分支；这与本固件 `0x08030C58` 的解释**不一致**。AT32F403A 不能因使用相似 CRM 基址就被认定为该固件的真实 MCU。另一方面 [ST RM0008](https://www.st.com/resource/en/reference_manual/rm0008-stm32f101-stm32f102-stm32f103-stm32f105-and-stm32f107-advanced-armbased-32bit-mcus-stmicroelectronics.pdf) 的 STM32F1 PLL×6/APB1 /2、定时器 x2 语义与默认分支吻合，但它也不能唯一确认厂商。
 
 ## 3. USART 三个真实调用点与可算 BRR
 
