@@ -62,6 +62,26 @@ class V2BootTraceTests(unittest.TestCase):
         self.assertEqual(diff["vector_entries_changed"][0]["index"], 1)
         self.assertFalse(diff["identical_reset_candidates"])
 
+    def test_literal_fed_blx_follows_startup_veneer(self):
+        package = bytearray(fixture())
+        decoded = bytearray(decoded_payload(bytes(package)))
+        # Reset: ldr r0,[pc,#4] -> 0x08001108, blx r0, bx lr.
+        struct.pack_into("<H", decoded, 0x100, 0x4801)
+        struct.pack_into("<H", decoded, 0x102, 0x4780)
+        struct.pack_into("<H", decoded, 0x104, 0x4770)
+        struct.pack_into("<I", decoded, 0x108, 0x08001121)
+        struct.pack_into("<H", decoded, 0x120, 0x4770)
+        report = trace(bytes(decoded))
+        self.assertIn(
+            {"target": "0x08001120", "sites": 1},
+            report["resolved_indirect_branch_targets"],
+        )
+        self.assertIn(
+            {"branch_site": "0x08001102", "resolved_target": "0x08001121"},
+            report["indirect_branch_sample"],
+        )
+        self.assertGreaterEqual(report["reachable_instruction_candidates"], 4)
+
     def test_rejects_invalid_package(self):
         image = bytearray(fixture())
         image[0] = 0
