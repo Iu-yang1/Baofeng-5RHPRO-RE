@@ -102,3 +102,9 @@ python tools/v2_mcu_candidate_matrix.py firmware/BF_5RH_501_v2_0_9.dat
 python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
 python -m unittest discover -s tests -v
 ~~~
+
+## 8. 更新：匹配 AIR32/MegaHunt 兼容 SDK，不等于确认 AIR32RPT6
+
+新的 [AIR32 源码级指纹报告](v2-0-09-air32-sdk-fingerprint.zh-CN.md) 发现 `0x400210F0` 门控、三级解锁、`0x40016C18` SRAM 操作、`0x4002228C` QSPI 密钥、`0x1FFFD00C` ROM `SysFreq_Set`、CFGR bit28 计算及分频表**均与 AIR32F103 SDK 高度吻合**。从而前述“CFGR bit28 与 AT32 不一致”应视为 AT32 反向证据、AIR32 SDK 正向证据，而不是软件必然有错。
+
+但是 AIR32F103RPT6 的官方规格为 **256 KiB Flash / 96 KiB SRAM / LQFP64**，本固件的真实 scatterload Flash 读取地址超过 256 KiB 的终点。它不能作为已确认的可刷写 MCU。AIR32/MH32F103A/MH2103A 等软件兼容谱系可作为后续调查线索，尚不满足实物认定条件。无需变更“保持 Rust HAL 芯片无关、不刷机”的开发决策。

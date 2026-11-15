@@ -57,6 +57,12 @@ SPECS = (
         "source": "https://arterytek.com/en/product/AT32F407.jsp",
     },
     {
+        "part": "AIR32F103RPT6",
+        "flash_kib": 256, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://c.vue2.cn/attachment/20220605164850945_AIR32F103芯片数据手册1.0.0.pdf",
+    },
+    {
         "part": "GD32F303RET6",
         "flash_kib": 512, "ram_kib": 64, "usarts": 3,
         "dma_channels": None, "package": "LQFP64",
@@ -128,6 +134,7 @@ def analyze(payload: bytes) -> dict:
         ),
         "unresolved": [
             "Actual CPUID, AT32 DEBUG_IDCODE PID, project model byte, and Flash size ID",
+            "Whether AIR32-compatible SDK code runs on higher-Flash, differently marked silicon",
             "Compatibility of PLL extended bit interpretation with vendor CRM_CFG",
             "Whether the XL99?1Q top marking is a custom code and its real vendor",
             "Actual physical Flash and SRAM boundaries, board wiring and revision",

@@ -86,6 +86,21 @@ python tools/at32_readonly_id_decode.py --cpuid 0x410FC241 --debug-id 0x700502CE
 
 The identification scripts operate read-only on the stock package or supplied numeric IDs. No physical SWD identity read was performed.
 
+### Pro V2 AIR32-compatible SDK lineage (not a confirmed chip ID)
+
+[Source-level AIR32 SDK fingerprint report (简体中文)](docs/v2-0-09-air32-sdk-fingerprint.zh-CN.md)
+verifies the proprietary three-stage register unlock, QSPI control keys, ROM `SysFreq_Set` callback,
+SRAM-window magic, RCC bit28 multiplier algorithm and recovered divider tables against
+the published AIR32F103 SDK. The application's `0x10000 / 0x380000 / 1` argument tuple
+maps to HSE/1, PLL x16 and FLASH_Div_2; for the compiled-in 8 MHz source this implies
+a **conditional 128 MHz request**, not a measured frequency or proof it always executes.
+The documented **AIR32F103RPT6 256 KiB Flash is too small** for the stock V2 scatterload
+access at `0x08061A54`; software lineage must not be confused with physical part identity.
+
+```sh
+python tools/v2_air32_sdk_fingerprint.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+```
+
 ### Pro V2 UID/ROM helper comparison
 
 [Boot ROM/UID conditional dispatch research (简体中文)](docs/v2-0-09-bootrom-uid-dispatch.zh-CN.md) reconstructs a firmware-visible ROM callback at `0x1FFFD000+0x0C`, UID low-word byte comparisons (not the official Artery series ID), two complementary writes to `0x4002228C`, and the actual V2 application call chain. The exact helper machine code from `0x08001280` is **216/216 bytes identical** across V1.1.04 and V2.0.09. This does **not** identify the MCU or prove the helper runs on every startup.
