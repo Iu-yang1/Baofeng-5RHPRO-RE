@@ -129,6 +129,20 @@ def _update_known(ins, known: dict[int, int], payload: bytes) -> None:
         known.pop(dest, None)
 
 
+def _branch_target(ins, known: dict[int, int], end: int) -> int | None:
+    if not (ins.group(CS_GRP_CALL) or ins.group(CS_GRP_JUMP)):
+        return None
+    for op in ins.operands:
+        if op.type == ARM_OP_IMM:
+            value = op.imm & ~1
+            if BASE <= value < end:
+                return value
+    mnemonic = ins.mnemonic.split(".")[0]
+    if mnemonic in ("bx", "blx") and ins.operands[0].type == ARM_OP_REG:
+        return _target(known.get(ins.operands[0].reg, 0), end)
+    return None
+
+
 def _walk(payload: bytes, roots: list[int], cap: int) -> dict:
     end = BASE + len(payload)
     md = Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_LITTLE_ENDIAN)
@@ -181,24 +195,16 @@ def _walk(payload: bytes, roots: list[int], cap: int) -> dict:
             # known input registers at the called function's entry.
             call = ins.group(CS_GRP_CALL)
             jump = ins.group(CS_GRP_JUMP)
-            target = None
-            if (call or jump) and ops:
-                for op in ops:
-                    if op.type == ARM_OP_IMM:
-                        addr = op.imm & ~1
-                        if BASE <= addr < end:
-                            target = addr
-                            break
-                if target is None and mnemonic in ("bx", "blx") and ops[0].type == ARM_OP_REG:
-                    target = _target(known.get(ops[0].reg, 0), end)
-                    if target is not None and len(branches) < 200:
-                        branches.append({
-                            "pc": f"0x{pc:08X}",
-                            "kind": mnemonic, "target": f"0x{target:08X}",
-                        })
-                if target is not None and target not in queued and target not in seen:
-                    queue.append((target, dict(known), "call" if call else "branch"))
-                    queued.add(target)
+            target = _branch_target(ins, known, end)
+            if (target is not None and mnemonic in ("bx", "blx")
+                    and ops and ops[0].type == ARM_OP_REG and len(branches) < 200):
+                branches.append({
+                    "pc": f"0x{pc:08X}",
+                    "kind": mnemonic, "target": f"0x{target:08X}",
+                })
+            if target is not None and target not in queued and target not in seen:
+                queue.append((target, dict(known), "call" if call else "branch"))
+                queued.add(target)
             _update_known(ins, known, payload)
             recent.append(_instruction_text(ins))
             if call:
