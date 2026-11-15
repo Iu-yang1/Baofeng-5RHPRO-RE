@@ -101,6 +101,22 @@ access at `0x08061A54`; software lineage must not be confused with physical part
 python tools/v2_air32_sdk_fingerprint.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
 ```
 
+### Pro V2 clock *runtime order*: Reset → main → PLL x16 → TIM/USART
+
+[Original-byte runtime call graph and BRR/PSC analysis (简体中文)](docs/v2-0-09-pll-runtime-order-peripherals.zh-CN.md)
+proves the startup-linked main entry, shared V1/V2 PLL path, and
+statically reachable TIM3/USART1/2/3 initialization paths. The initial
+48 MHz Reset-stage profile **is not the sole application clock**.
+When the conditional AIR32-compatible 8 MHz HSE ×16 ROM request succeeds,
+the expected SYSCLK/HCLK is 128 MHz with APB1 64 MHz, APB2 128 MHz;
+USART BRR16 estimates are 0x0457 (115200), 0x1A0B (9600), and
+0x0D05 (19200), and TIM3 PSC is 63 instead of 23 for the same 1 ms tick.
+These are *conditional calculations*, not a physical clock or register read.
+
+```sh
+python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json
+```
+
 ### Pro V2 UID/ROM helper comparison
 
 [Boot ROM/UID conditional dispatch research (简体中文)](docs/v2-0-09-bootrom-uid-dispatch.zh-CN.md) reconstructs a firmware-visible ROM callback at `0x1FFFD000+0x0C`, UID low-word byte comparisons (not the official Artery series ID), two complementary writes to `0x4002228C`, and the actual V2 application call chain. The exact helper machine code from `0x08001280` is **216/216 bytes identical** across V1.1.04 and V2.0.09. This does **not** identify the MCU or prove the helper runs on every startup.
