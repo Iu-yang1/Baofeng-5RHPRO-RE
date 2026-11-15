@@ -29,6 +29,10 @@ jobs:
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001250 --end 0x08001356
           python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08001280:0x08001280:0xD8
+      - name: Verify actual V2 ROM dispatch and equivalent V1 machine code
+        run: |
+          python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+          python tools/v2_bootrom_dispatch.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-bootrom-identity-metadata.json
       - name: Search special literal targets in original firmware
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
