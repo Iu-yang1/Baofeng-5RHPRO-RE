@@ -25,6 +25,10 @@ jobs:
       - name: Inspect V2 UID boot ROM dispatch (not a model-ID lookup)
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001250 --end 0x08001356
+      - name: Inspect the calling context before and after ROM dispatch
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001200 --end 0x08001282
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001340 --end 0x080013CC
       - name: Compare corresponding V1 startup and UID branch
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08001250 --end 0x08001356
