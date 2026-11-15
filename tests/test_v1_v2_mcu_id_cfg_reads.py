@@ -29,6 +29,7 @@ FIXTURE = bytes.fromhex(
     "c1f6ff7001687047"
 )
 # Same-register MOVW/MOVT for UID0, with local SRAM spill and reload.
+BRANCH_MOVPAIR = bytes.fromhex("4ff2e87000e000bfc1f6ff7001687047")
 SRAM_ALIAS = bytes.fromhex(
     "40f20010c2f200004ff2e872c1f6ff72"
     "0260036819687047"
@@ -71,6 +72,14 @@ class SyntheticIdentityCFGTests(unittest.TestCase):
         for pc in (0x08001010, 0x0800101E, 0x0800102A):
             self.assertEqual(actual[pc], "MOVW/MOVT possible ID address")
 
+    def test_movw_branch_movt_keeps_uid_address(self):
+        self.assertIn(("0x0800100C", "0x1FFFF7E8", "read"),
+                      addresses(trace_from(BRANCH_MOVPAIR, 0x08001000)))
+        roots = find_seeds(BRANCH_MOVPAIR)
+        self.assertTrue(any(x["seed"] == 0x08001000 and
+                            x["kind"] == "MOVW/MOVT possible ID address"
+                            for x in roots))
+
     def test_sram_pointer_alias_and_derived_register_access(self):
         result = trace_from(SRAM_ALIAS, 0x08001000)
         self.assertIn(("0x08001014", "0x1FFFF7E8", "read"), addresses(result))
@@ -101,6 +110,12 @@ class OriginalStockIdentityCFGTests(unittest.TestCase):
                 self.assertEqual(report["candidate_source_count"], 7)
                 self.assertEqual(report["source_types"]["MOVW/MOVT possible ID address"], 0)
                 self.assertEqual(report["unique_candidate_accesses"], 1)
+                self.assertEqual(
+                    sorted(x["loaded_value"] for x in report["all_sources"]),
+                    sorted(["0x1FFFF7E8", "0xE000ED08", "0xE000ED08",
+                            "0xE000ED0C", "0xE000ED0C",
+                            "0xE000ED10", "0xE000ED10"]),
+                )
                 self.assertFalse(report["source_budget_exhausted"])
                 self.assertTrue(report["original_helper_uid0_read_reachable_from_entry"])
                 self.assertFalse(report["helper_budget_exhausted"])
