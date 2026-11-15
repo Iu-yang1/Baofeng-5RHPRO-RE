@@ -53,6 +53,10 @@ jobs:
         run: |
           python tools/v2_uart_protocol_evidence.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_uart_protocol_evidence.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-uart-protocol-evidence.json
+      - name: Reconcile original V2 RAM layout with scatterload and initial SP
+        run: |
+          python tools/v2_memory_layout.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_memory_layout.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-memory-layout.json
       - name: Upload metadata (no decoded firmware image)
         uses: actions/upload-artifact@v4
         with:
@@ -61,4 +65,5 @@ jobs:
             v2-uart-irq-evidence.json
             v2-uart-protocol-evidence.json
             v2-register-writes.txt
+            v2-memory-layout.json
           if-no-files-found: error
