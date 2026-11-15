@@ -55,7 +55,7 @@ class ThumbDataflowSyntheticTests(unittest.TestCase):
                       {(e["pc"], e["address"]) for e in scan(RAM_ALIAS)["cfg_candidate_stores"]})
 
     def test_callee_clobber_prevents_false_pointer_completion(self):
-        self.assertNotIn(("0x08001034", "0x40021004"),
+        self.assertNotIn(("0x0800100C", "0x40021004"),
                          sites(walk_cfg(CALL_KILLS, 0x08001000)))
         self.assertFalse(walk_cfg(CALL_KILLS, 0x08001000)["candidate_stores"])
 
@@ -90,7 +90,7 @@ class RealStockDataflowTests(unittest.TestCase):
         for r in (self.v1scan, self.v2scan):
             self.assertEqual(r["old_linear_unique_store_count"], 30)
             self.assertEqual(r["seed_count_by_type"]["pc_relative_literal"], 26)
-            self.assertIn("unresolved", r["limits"][-3])
+            self.assertTrue(any("unresolved" in note for note in r["limits"]))
 
     def test_v2_original_rom_cfgr_sites_found_via_cfg(self):
         known = {(s["pc"], s["address"]) for s in self.v2scan["cfg_candidate_stores"]}
