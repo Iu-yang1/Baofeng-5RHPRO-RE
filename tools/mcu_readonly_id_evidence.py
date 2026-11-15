@@ -21,7 +21,8 @@ AIR32_UID_LOW_PATTERNS = {
     0x1A9A6DD: "AIR32F103ZET6",
 }
 ARM_PARTS = {
-    0xC20: "Cortex-M0+",
+    0xC20: "Cortex-M0",
+    0xC60: "Cortex-M0+",
     0xC23: "Cortex-M3",
     0xC24: "Cortex-M4",
     0xC27: "Cortex-M7",
