@@ -32,3 +32,22 @@ jobs:
       - name: V2 USART caller setup and clock getter call
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032C90 --end 0x08032D90
+      - name: Model V2 original firmware PLL and bus clocks
+        run: |
+          python tools/v2_clock_tree_model.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_clock_tree_model.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-clock-tree-evidence.json
+      - name: Find direct callers of clock getter and peripheral initialization
+        run: |
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x08030C30 --target 0x080324F8 --near-start 0x08032C60 --near-end 0x08032CE0
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x08030C30 --target 0x080324F8 --near-start 0x08032C60 --near-end 0x08032CE0 --json > v2-clock-caller-index.json
+      - name: Compare old and new clock getter code windows
+        run: |
+          python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08024AFC:0x08030C30:0x94 --pair 0x08025AC0:0x08031BF4:0x9C
+      - name: Archive read-only metadata only
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-clock-tree-and-callsites
+          path: |
+            v2-clock-tree-evidence.json
+            v2-clock-caller-index.json
+          if-no-files-found: error
