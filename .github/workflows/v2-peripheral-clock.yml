@@ -32,6 +32,10 @@ jobs:
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080324F0 --end 0x08032574
           python tools/clock_register_trace.py --show-context --pc-from 0x08032D40 --pc-to 0x08032D95 firmware/BF_5RH_501_v2_0_9.dat
           python tools/clock_register_trace.py --show-context --pc-from 0x08032520 --pc-to 0x08032560 firmware/BF_5RH_501_v2_0_9.dat
+      - name: Compare original V1 and V2 UART and timer paths
+        run: python tools/peripheral_clock_constraints.py --scope vectors firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat
+      - name: Inspect full UART configuration procedure
+        run: python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032CE0 --end 0x08032D20
       - name: Store derived metadata only
         uses: actions/upload-artifact@v4
         with:
