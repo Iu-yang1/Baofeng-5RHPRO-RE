@@ -25,6 +25,22 @@ MAX_INSTRUCTIONS = 180000
 VECTOR_LIMIT = 64
 
 
+def _peripheral_literal(inst, pc: int, buf: bytes, base: int, end: int):
+    """Identify a candidate peripheral address loaded from a Thumb literal pool."""
+    if not inst.mnemonic.startswith("ldr"):
+        return None
+    for op in inst.operands:
+        if op.type != ARM_OP_MEM or op.mem.base != ARM_REG_PC:
+            continue
+        location = ((pc + 4) & ~3) + op.mem.disp
+        if location % 4 != 0 or not (base <= location <= end - 4):
+            continue
+        value = struct.unpack_from("<I", buf, location - base)[0]
+        if 0x40000000 <= value < 0x60000000:
+            return location, value
+    return None
+
+
 def profile(package: bytes, file: str = "<memory>") -> dict:
     buf = decoded_payload(package)
     base = FLASH_ORIGIN
@@ -64,15 +80,11 @@ def profile(package: bytes, file: str = "<memory>") -> dict:
             instructions += 1
             mnemonic = inst.mnemonic
             operands = inst.operands
-            if mnemonic.startswith("ldr"):
-                for op in operands:
-                    if op.type == ARM_OP_MEM and op.mem.base == ARM_REG_PC:
-                        location = ((addr + 4) & ~3) + op.mem.disp
-                        if base <= location <= end - 4 and location % 4 == 0:
-                            word = struct.unpack_from("<I", buf, location - base)[0]
-                            if 0x40000000 <= word < 0x60000000:
-                                literals[word] += 1
-                                refs.append((addr, location, word))
+            found = _peripheral_literal(inst, addr, buf, base, end)
+            if found is not None:
+                location, word = found
+                literals[word] += 1
+                refs.append((addr, location, word))
             targets = [op.imm for op in operands if op.type == ARM_OP_IMM]
             if targets and (inst.group(CS_GRP_CALL) or inst.group(CS_GRP_JUMP)):
                 for target in targets:
