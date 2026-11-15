@@ -26,6 +26,10 @@ jobs:
         run: |
           python tools/v2_mcu_candidate_matrix.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_mcu_candidate_matrix.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-mcu-matrix.json
+      - name: Search firmware for debugger/flash-register identification self-checks
+        run: |
+          python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
+          python tools/v2_mcu_identity_xrefs.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-mcu-identity-xrefs.json
       - name: Check original clock getter high PLL bit behavior
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08030C48 --end 0x08030C80
@@ -36,5 +40,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: v2-mcu-part-family-comparison
-          path: v2-mcu-matrix.json
+          path: |
+            v2-mcu-matrix.json
+            v2-mcu-identity-xrefs.json
           if-no-files-found: error
