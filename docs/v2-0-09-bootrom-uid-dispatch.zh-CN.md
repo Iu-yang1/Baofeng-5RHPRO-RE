@@ -83,3 +83,11 @@ python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x080012
 ~~~
 
 以上工具均只读取归档原厂固件，不进行模拟写入 Flash、不调用硬件 ROM、不生成可刷机文件。可观察的仅是机器码指令地址、常量、合成条件分支和代码复用状态。
+
+## 2026-11-15 追加发现：该流程匹配 AIR32F103 SDK
+
+此前对 `0x4002228C` 的“未知用途”是依据 **AT32F403A/407 手册**得出的局部结论，不应当泛化为所有 MCU 家族。现已查得 [合宙 AIR32F103 官方开源 SDK](https://github.com/openLuat/luatos-soc-air32f103/blob/c10eaeb13dd133f35bc9d8ed1137072897339db2/Libraries/AIR32F10xLib/src/air32f10x_rcc_ex.c)：同一组三级密钥、`0x4002228C` 的 QSPI 解锁/恢复、`0x1FFFD00C` 的 `SysFreq_Set` 函数指针调用全部出现。旧报告的静态指令地址与字节验证仍然成立，**对特殊寄存器的可能解释则已有更强的源码依据**。
+
+同时新确认上层 R0=`0x10000`、R1=`0x380000`、R2=`1` 与 AIR32 SDK 常量 `RCC_PLLSource_HSE_Div1`、`RCC_PLLMul_16`、`FLASH_Div_2` 对应，构成条件 **8 MHz ×16 = 128 MHz** 的时钟请求（非实测）。另需强调：标准 AIR32F103RPT6 只有 256 KiB Flash，与 V2 在 `0x08061A54` 的真实读取矛盾，**芯片具体型号仍未确定**。
+
+参见 [AIR32 SDK 指纹深度交叉验证报告](v2-0-09-air32-sdk-fingerprint.zh-CN.md)。原文此前“ROM 接口完全未知”应细分：SDK 侧的 `SysFreq_Set` 名称和参数映射已识别，但 ROM 函数实现、UID 各分支语义及具体芯片仍未知。
