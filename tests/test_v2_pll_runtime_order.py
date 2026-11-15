@@ -62,6 +62,15 @@ class RuntimeClockOrderTests(unittest.TestCase):
         self.assertEqual(model["read_live_clock_evidence"]["USART_Init_clock_getter_call"],
                          "0x08032D18")
 
+    def test_clock_helper_direct_calls_are_confined_to_init_code(self):
+        refs = self.report["direct_rcc_helper_xrefs"]
+        self.assertEqual(refs["early_reset_clock_init"]["direct_bl_candidates"], ["0x0803240E"])
+        self.assertEqual(refs["proprietary_rom_pll_helper"]["direct_bl_candidates"], ["0x08032386"])
+        self.assertEqual(refs["ahb_prescaler"]["direct_bl_candidates"], ["0x080323A2"])
+        self.assertEqual(refs["apb1_prescaler"]["direct_bl_candidates"], ["0x080323AA"])
+        self.assertEqual(refs["apb2_prescaler"]["direct_bl_candidates"], ["0x080323B0"])
+        self.assertEqual(refs["sysclk_select"]["direct_bl_candidates"], ["0x0803239C"])
+
     def test_v1_uses_the_same_reset_main_pll_structure(self):
         v1 = self.report["v1_cross_version"]
         self.assertEqual(v1["post_scatterload_main_pointer_at_0x0800122C"], "0x08027BE9")
