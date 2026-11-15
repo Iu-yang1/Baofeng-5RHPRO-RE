@@ -41,7 +41,7 @@
 
 ## 二、新分析器的实现边界
 
-[tools/v2_rcc_cfg_dataflow.py](../tools/v2_rcc_cfg_dataflow.py) 分成两种入口证据：
+[tools/v2_rcc_cfg_dataflow.py](../tools/v2_rcc_cfg_dataflow.py) 负责候选根与控制流遍历；[tools/thumb_rcc_abstract.py](../tools/thumb_rcc_abstract.py) 独立实现寄存器抽象状态、栈/SRAM 别名及单指令数据流传播。入口证据分为两类：
 
 1. **候选根：** 从原厂镜像经 Thumb 指令验证的 `0x40021000/0x40021004/0x400210F0` 文字池加载点，以及同一寄存器、96 字节以内能够配对的 `MOVW`、`MOVT`（高 16 位 `0x4002`）组合；为探索 SRAM 中转，再向前补充同一局部区域 32 字节以内的 `MOVW` 起点。这些不是证明存在真实函数入口的标记。
 2. **已知原厂入口：** 单独从已验证的 Cortex-M Reset 向量入口和 V1/V2 共用的 ROM 帮助函数前导开始静态遍历；与候选根的结果隔离，避免把原厂真实入口与未证实的潜在指令地址混淆。
