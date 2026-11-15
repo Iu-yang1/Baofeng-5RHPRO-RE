@@ -36,9 +36,15 @@ jobs:
         run: python tools/peripheral_clock_constraints.py --scope vectors firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat
       - name: Inspect full UART configuration procedure
         run: python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032CE0 --end 0x08032D20
+      - name: Compare V1-V2 relocated USART and timer SDK windows
+        run: |
+          python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08026C50:0x08032D84:24 --pair 0x0802640C:0x08032540:24
+          python tools/compare_sdk_windows.py firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat --pair 0x08026C20:0x08032D54:64 --pair 0x080263C4:0x080324F8:80 --json > sdk-v1-v2-window-comparison.json
       - name: Store derived metadata only
         uses: actions/upload-artifact@v4
         with:
           name: v2-peripheral-clock-constraints
-          path: v1-v2-peripheral-clock-constraints.json
+          path: |
+            v1-v2-peripheral-clock-constraints.json
+            sdk-v1-v2-window-comparison.json
           if-no-files-found: error
