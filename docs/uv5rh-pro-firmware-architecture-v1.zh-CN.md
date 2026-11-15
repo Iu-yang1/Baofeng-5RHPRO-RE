@@ -32,6 +32,8 @@ python -m unittest discover -s tests -v
 
 本轮的 \`tools/v2_uart_protocol_evidence.py\` 会逐条核查对应 Thumb 指令与 PC 相对常量池值；原厂代码变化时直接报告指纹不匹配，而不是沿用旧结论。
 
+> **时钟实现补充：** [Reset / main PLL ×16 与 USART/TIM3 调用顺序](v2-0-09-pll-runtime-order-peripherals.zh-CN.md) 说明早期 48 MHz Reset 假设并不固定代表 UART/TIM 初始化时的时钟。若应用的 AIR32 风格 ROM 时钟配置成功，条件主频可为 128 MHz。未来 `ClockTree` 必须在配置时钟后统一给 USART BRR 和 TIM PSC 提供相同的实时 PCLK 数据，避免保留复位阶段频率。
+
 ## 二、启动 RAM 布局对自主固件的价值
 
 恢复 ARM \`__scatterload\` 的两条记录，可建立原厂镜像的**静态内存占用边界**：

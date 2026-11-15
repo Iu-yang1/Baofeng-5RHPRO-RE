@@ -57,6 +57,10 @@ jobs:
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat
+      - name: Verify reset-to-main, nested PLL/USART/TIM ordering and conditional clocks
+        run: |
+          python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+          python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-pll-runtime-order.json
       - name: Archive only public-code-derived ROM branch evidence
         uses: actions/upload-artifact@v4
         with:
@@ -64,4 +68,5 @@ jobs:
           path: |
             v2-bootrom-identity-metadata.json
             v2-air32-sdk-fingerprint.json
+            v2-pll-runtime-order.json
           if-no-files-found: error
