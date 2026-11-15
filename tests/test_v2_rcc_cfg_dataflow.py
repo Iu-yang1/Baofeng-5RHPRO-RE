@@ -31,6 +31,13 @@ REGISTER_CALL = bytes.fromhex(
     "41f22123 c0f60003 9847 7047 00000000"
 )
 UNPAIRED_MOVT = bytes.fromhex("c4f20200 0160 7047 00000000")
+STACK_ALIAS = bytes.fromhex(
+    "81b0 41f20402 c4f20202 0092 009b 1960 01b0 7047 00000000"
+)
+RAM_ALIAS_AFTER_CALL = bytes.fromhex(
+    "40f20010 c2f20000 41f20402 c4f20202 "
+    "0260 00f003f8 0368 1960 7047 7047 00000000"
+)
 
 
 def sites(result: dict) -> set[tuple[str, str]]:
@@ -53,6 +60,14 @@ class ThumbDataflowSyntheticTests(unittest.TestCase):
         self.assertIn(0x08001008, mov_pair_seeds(RAM_ALIAS))
         self.assertIn(("0x08001014", "0x40021004"),
                       {(e["pc"], e["address"]) for e in scan(RAM_ALIAS)["cfg_candidate_stores"]})
+
+    def test_stack_slot_pointer_roundtrip(self):
+        self.assertIn(("0x0800100E", "0x40021004"),
+                      sites(walk_cfg(STACK_ALIAS, 0x08001000)))
+
+    def test_unmodeled_call_invalidates_sram_memory_and_volatile_registers(self):
+        self.assertNotIn(("0x08001018", "0x40021004"),
+                         sites(walk_cfg(RAM_ALIAS_AFTER_CALL, 0x08001000)))
 
     def test_callee_clobber_prevents_false_pointer_completion(self):
         self.assertNotIn(("0x0800100C", "0x40021004"),
