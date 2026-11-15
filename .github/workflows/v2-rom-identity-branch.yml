@@ -63,6 +63,10 @@ jobs:
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat --json > v2-mcu-readonly-id-literal-xrefs.json
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat --json > v1-mcu-readonly-id-literal-xrefs.json
+      - name: Verify actual Thumb dereferences of UID, Flash F_SIZE, CPUID, Artery PID and Project ID
+        run: |
+          python tools/v1_v2_mcu_id_cfg_reads.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --show-accesses
+          python tools/v1_v2_mcu_id_cfg_reads.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v1-v2-mcu-id-cfg-reads.json
       - name: Verify reset-to-main, nested PLL/USART/TIM ordering and conditional clocks
         run: |
           python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
@@ -87,4 +91,5 @@ jobs:
             v2-rcc-cfg-dataflow.json
             v1-mcu-readonly-id-literal-xrefs.json
             v2-mcu-readonly-id-literal-xrefs.json
+            v1-v2-mcu-id-cfg-reads.json
           if-no-files-found: error
