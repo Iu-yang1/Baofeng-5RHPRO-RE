@@ -98,6 +98,10 @@ python tools/mcu_readonly_id_evidence.py --cpuid 0x410FC241 \
 
 解析器提供条件性候选及不一致提示；如果额外提供 `--uid-first-word`，**不会在 JSON 里回显完整 UID0 数值**。具体的芯片 UID 不应上传公开 CI 日志。
 
+## 2026-11-15：进一步补充真实读取指令的控制流证据
+
+参见 [UID/CPUID/F_SIZE/PID 指令级读取审计](v1-v2-mcu-id-cfg-reads.zh-CN.md)：V1/V2 经跨基本块 Thumb 数据流扫描，均检测到 7 个身份地址附近的 PC 相对字面量候选，但**仅 1 个可解析为身份寄存器读取指令**，即原厂 ROM 辅助函数中 `0x080012A4 LDR R6,[R0]` 读取 `0x1FFFF7E8` 的 UID0。其余六个候选属于 ARM SCB 的 `VTOR(0xE000ED08)`、`AIRCR(0xE000ED0C)`、`SCR(0xE000ED10)`，**不是 ARM CPUID**。本轮未找到其他四组 ID 的静态读指令，但算法并不覆盖全部间接地址与 ROM 路径，不能据此认定实机型号。
+
 ## 5. 验收和未解决问题
 
 测试验证 6 个 AIR32 UID 模式及末位通配符、公开 AT32 PID、CPUID M3/M4、Flash 报告值与 391 KiB 窗口约束、DPIDR（Arm 组件而非厂家）、互相矛盾的证据和原厂 V1/V2 字面量引用。CI 只运行原厂静态扫描与人工构造的示例数值，绝不连接调试器。
