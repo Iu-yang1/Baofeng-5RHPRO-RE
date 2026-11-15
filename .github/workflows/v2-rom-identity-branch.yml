@@ -53,3 +53,9 @@ jobs:
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v1_1_04.dat
+      - name: Archive only public-code-derived ROM branch evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: uv5rhpro-v2-bootrom-uid-control-flow
+          path: v2-bootrom-identity-metadata.json
+          if-no-files-found: error
