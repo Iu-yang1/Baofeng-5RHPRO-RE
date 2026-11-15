@@ -77,3 +77,14 @@
 先**确定 MCU 与 RFIC**，再决定是否直接移植 Rust 工程。现阶段只进行静态分析与只读鉴别；不生成「适配 Pro」名义的可刷镜像，不把其他机型的寄存器表当作实机已验证配置。逐步验证不应演变为无依据的发射功能禁用；针对 PTT 持续发射、错误射频切换和固件擦除等有明确故障模式的操作，设计必要的状态机和恢复机制。
 
 后续优先级：**V2 本机 PCB / MCU 丝印 → SWD / 向量表指纹 → RFIC 0x00 → 外部 Flash → LCD/GNSS → Rust HAL**。
+
+
+## 七、找到的射频芯片原始寄存器资料
+
+**[FD6818 Programming Guide Rev.1.0.0（75 页；网络存档为机器翻译英文版）](https://www.glaver.org/blog/UV-17/FD6818.pdf)**
+
+可用于研究：三线串口时序、PLL/VCO、频点与带宽、RX/TX 状态、静噪/RSSI、CTCSS/DCS、FSK、音频、功率控制与调制偏差。因翻译质量、资料版本和器件差异，**文档中的寄存器名称及地址不应直接等同到 Pro 的实际寄存器映射**。
+
+辅助参考：[RadioFoundry：其他设备 FD6818 驱动与实测寄存器](https://radiofoundry.org/docs/spec/hardware-dm32)；该文档明确指出某些产品中 FD6818 的使用地址与编程手册不同，不能将外机的初始化字节序列直接烧入 UV-5RH Pro。
+
+射频末级元件的备选资料：[HTL7G06S011P LDMOS 数据手册](https://www.watechelectronics.com/Public/Uploads/uploadfile2/files/20241107/HTL7G06S011PProductdatasheetrev1.8.pdf)。**这是早期拆机讨论所链接的型号，不等于已核实用户电台焊接的器件。**
