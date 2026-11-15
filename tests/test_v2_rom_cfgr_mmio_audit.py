@@ -71,7 +71,7 @@ class BootROMCFGRMMIOTests(unittest.TestCase):
             scan = self.report[key]
             self.assertTrue(scan["literal_load_candidate_sites"])
             self.assertGreater(len(scan["straight_line_store_candidates"]), 0)
-            self.assertIn("not", scan["not_proven"].lower())
+            self.assertIn("Neither completeness", scan["not_proven"])
 
 
 if __name__ == "__main__":
