@@ -264,6 +264,8 @@ def main(argv: list[str] | None = None) -> int:
                   "helper UID0 read:", row["original_helper_uid0_read_reachable_from_entry"],
                   "budget exhausted", len(row["source_budget_exhausted"]))
             if args.show_accesses:
+                for seed in row["all_sources"]:
+                    print("  source", seed["seed"], seed["kind"], seed["loaded_value"])
                 for item in row["candidate_id_accesses"]:
                     print(" ", item["pc"], item["direction"], item["address"],
                           item["width_bytes"], item["match"]["register"],
