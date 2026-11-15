@@ -63,7 +63,7 @@ jobs:
           python tools/v2_pll_runtime_order.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-pll-runtime-order.json
       - name: Verify UID-specific RCC CFGR writes and bounded direct MMIO xrefs
         run: |
-          python tools/v2_rom_cfgr_mmio_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
+          python tools/v2_rom_cfgr_mmio_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --show-writes
           python tools/v2_rom_cfgr_mmio_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > v2-rom-cfgr-mmio-audit.json
       - name: Archive only public-code-derived ROM branch evidence
         uses: actions/upload-artifact@v4
