@@ -21,6 +21,7 @@ from v2_bootrom_dispatch import require as assert_ins
 from v2_clock_tree_model import analyze as clock_analyze
 from usart_clock_callers import analyze_callers as usart_analyze, predict_brr16
 from timer_clock_callers import analyze_callers as timer_analyze
+from v2_air32_sdk_fingerprint import analyze as air32_analyze
 
 BASE = 0x08001000
 V1 = {
@@ -80,6 +81,15 @@ def verify_reset_to_main(payload: bytes, spec: dict, v2: bool) -> dict:
         assert_ins(payload, 0x080323AA, "bl", "#0x8030d64")
         assert_ins(payload, 0x08032D18, "bl", "#0x8030c30")
     else:
+        assert_ins(payload, 0x0800123C, "ldr", "r0, [pc, #0x18]", 0x080262A9)
+        assert_ins(payload, 0x0800123E, "blx", "r0")
+        assert_ins(payload, 0x08001240, "ldr", "r0, [pc, #0x18]", 0x08001221)
+        assert_ins(payload, 0x08001242, "bx", "r0")
+        assert_ins(payload, 0x0802624A, "movs", "r2, #1")
+        assert_ins(payload, 0x0802624C, "mov.w", "r1, #0x380000")
+        assert_ins(payload, 0x08026252, "bl", "#0x8001260")
+        assert_ins(payload, 0x080130B4, "bl", "#0x8024bbc")
+        assert_ins(payload, 0x080130DE, "bl", "#0x80263c4")
         assert_ins(payload, 0x080111F2, "bl", "#0x802622a")
         assert_ins(payload, 0x080111F6, "bl", "#0x8013170")
         assert_ins(payload, 0x080111FE, "b.w", "#0x80130a0")
@@ -190,9 +200,18 @@ def clock_brr_timing(payload: bytes) -> dict:
     timers = timer_analyze(payload)
     if len(serial["callers"]) != 3 or timers["matched_timer_call_chains"] != 5:
         raise ValueError("original USART/TIM call fingerprints changed")
-    # Request from AIR_RCC_PLLConfig, conditional on 8MHz HSE and ROM dispatch.
-    pll_requested_hz = 8_000_000 * 16
-    pclk1, pclk2 = pll_requested_hz//2, pll_requested_hz
+    # Derive the conditional PLL request from the *validated* stock
+    # AIR32-style callsite, and dividers from recovered reset code.
+    sdk = air32_analyze(payload)
+    pll_requested_hz = sdk["callsite"]["conditional_target_frequency_hz"]
+    ahb_div = reset_model["sysclk_hz"] // reset_model["hclk_hz"]
+    apb1_div = reset_model["hclk_hz"] // reset_model["pclk1_hz"]
+    apb2_div = reset_model["hclk_hz"] // reset_model["pclk2_hz"]
+    timer_multiplier = (
+        reset_model["apb1_timer_clock_hz"] // reset_model["pclk1_hz"]
+    )
+    hclk = pll_requested_hz // ahb_div
+    pclk1, pclk2 = hclk // apb1_div, hclk // apb2_div
     rows = []
     for row in serial["callers"]:
         name = row["peripheral_candidate"]
@@ -206,8 +225,15 @@ def clock_brr_timing(payload: bytes) -> dict:
             "post_128mhz_brr16_hypothesis": f"0x{predict_brr16(pclk, baud):04X}",
             "post_128mhz_pclk_hz": pclk,
         })
-    psc = pclk1//1_000_000-1
-    tick = (pclk1*2)//(psc+1)
+    tim3_rows = [
+        row for row in timers["callers"]
+        if row["clock_getter_call"] == hexpc(TIM3_CLOCK_QUERY)
+    ]
+    if len(tim3_rows) != 1 or tim3_rows[0]["divider_from_literal"] != 1_000_000:
+        raise ValueError("V2 original TIM3 clock and divider evidence changed")
+    tim3 = tim3_rows[0]
+    psc = pclk1 // tim3["divider_from_literal"] - 1
+    tick = (pclk1 * timer_multiplier) // (psc + 1)
     return {
         "early_reset_sysclk_hz": reset_model["sysclk_hz"],
         "post_rom_pll_request_sysclk_hz": pll_requested_hz,
@@ -216,14 +242,14 @@ def clock_brr_timing(payload: bytes) -> dict:
             "operation, PLL lock, SWS switch and subsequent unchanged bus divisors"
         ),
         "post_128mhz_hypothesis": {
-            "hclk_hz": pll_requested_hz,
+            "hclk_hz": hclk,
             "pclk1_hz": pclk1,
             "pclk2_hz": pclk2,
-            "tim_apb1_input_hz": pclk1*2,
+            "tim_apb1_input_hz": pclk1 * timer_multiplier,
             "tim3_psc_if_live_pclk1": psc,
-            "tim3_arr": 1999,
+            "tim3_arr": tim3["arr_value"],
             "tim3_counter_hz": tick,
-            "tim3_update_us": round(1e6*2000/tick, 4),
+            "tim3_update_us": round(1e6 * (tim3["arr_value"] + 1) / tick, 4),
         },
         "usart_brr16_comparison": sorted(rows, key=lambda row: row["name"]),
         "read_live_clock_evidence": {
@@ -231,10 +257,7 @@ def clock_brr_timing(payload: bytes) -> dict:
             "TIM3_clock_getter_call": hexpc(0x080193FC),
         },
         "uart_instructions": serial["callers"],
-        "tim3_instructions": [
-            r for r in timers["callers"]
-            if r["clock_getter_call"] == hexpc(TIM3_CLOCK_QUERY)
-        ],
+        "tim3_instructions": tim3_rows,
     }
 
 
