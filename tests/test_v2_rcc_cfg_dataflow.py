@@ -92,6 +92,24 @@ class RealStockDataflowTests(unittest.TestCase):
             self.assertEqual(r["seed_count_by_type"]["pc_relative_literal"], 26)
             self.assertTrue(any("unresolved" in note for note in r["limits"]))
 
+    def test_cross_block_scan_adds_thirteen_real_stock_writes_per_version(self):
+        for scan_result in (self.v1scan, self.v2scan):
+            self.assertEqual(scan_result["cfg_candidate_store_count"], 43)
+            self.assertEqual(len(scan_result["new_vs_linear_candidates"]), 13)
+            self.assertFalse(scan_result["exhausted_seeds"])
+            self.assertEqual(scan_result["seed_count_by_type"]["movw_movt_candidate"], 0)
+
+    def test_reset_indirect_pointer_and_rom_callback_bounded_context(self):
+        roots = self.v2scan["verified_entry_context"]
+        self.assertIn("reset_vector_entry", roots)
+        self.assertIn("shared_rom_helper", roots)
+        startup = roots["reset_vector_entry"]["register_indirect_branches"]
+        self.assertTrue(any(x["pc"] == "0x0800123E" and
+                            x["target"] == "0x080323DD" for x in startup))
+        rom = roots["shared_rom_helper"]["register_indirect_branches"]
+        self.assertTrue(any(x["pc"] == "0x080012BC" and x["target"] is None
+                            for x in rom))
+
     def test_v2_original_rom_cfgr_sites_found_via_cfg(self):
         known = {(s["pc"], s["address"]) for s in self.v2scan["cfg_candidate_stores"]}
         self.assertIn(("0x080012F0", "0x40021004"), known)
