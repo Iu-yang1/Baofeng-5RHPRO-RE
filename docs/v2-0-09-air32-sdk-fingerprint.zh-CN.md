@@ -2,6 +2,8 @@
 
 日期：2026-11-15。使用归档原厂 `BF_5RH_501_v2_0_9.dat` 与 `BF_5RH_501_v1_1_04.dat`，并与合宙开源 AIR32F103 SDK **源码逐项**对比。本报告为**离线固件谱系鉴定**，不是实机 MCU 身份确认。
 
+> **后续 Reset 路径补证：** [V1/V2 主入口及时钟外围初始化验证](v2-0-09-pll-runtime-order-peripherals.zh-CN.md) 已将 `0x080173DC` 追溯至 V2 Reset → ARM scatterload → `0x080340E0` 主入口（直接 `BL` 在 `0x080340EA`），且在 USART/TIM3 初始化之前。V1 同样存在对应结构。ROM 回调仍由 UID 分支决定，因此 128 MHz 是具有启动路径证据的**条件请求**，而非已经测得的实际主频。
+
 ## 一、重大修正：ROM 辅助函数并非无法识别的随机魔数
 
 在官方开源 SDK [AIR_RCC_PLLConfig](https://github.com/openLuat/luatos-soc-air32f103/blob/c10eaeb13dd133f35bc9d8ed1137072897339db2/Libraries/AIR32F10xLib/src/air32f10x_rcc_ex.c) 中：
