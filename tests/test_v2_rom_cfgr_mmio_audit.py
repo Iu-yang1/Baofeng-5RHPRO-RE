@@ -71,6 +71,15 @@ class BootROMCFGRMMIOTests(unittest.TestCase):
             scan = self.report[key]
             self.assertTrue(scan["literal_load_candidate_sites"])
             self.assertGreater(len(scan["straight_line_store_candidates"]), 0)
+            self.assertEqual(len(scan["literal_load_candidate_sites"]), 26)
+            self.assertEqual(scan["unique_local_store_candidates"], 30)
+            self.assertEqual(len(scan["straight_line_store_candidates"]), 30)
+            self.assertTrue(all(
+                (0x08001200 <= int(x["store_pc"], 16) < 0x08001400)
+                or (0x08024A00 <= int(x["store_pc"], 16) < 0x08026300)
+                or (0x08030B00 <= int(x["store_pc"], 16) < 0x08032500)
+                for x in scan["straight_line_store_candidates"]
+            ))
             self.assertIn("Neither completeness", scan["not_proven"])
 
 
