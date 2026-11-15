@@ -43,6 +43,8 @@ class ClockTreeModelTests(unittest.TestCase):
         self.assertEqual(x["pclk1_hz"], 24_000_000)
         self.assertEqual(x["pclk2_hz"], 48_000_000)
         self.assertEqual(x["apb1_timer_clock_hz"], 48_000_000)
+        self.assertEqual(x["adc_divisor"], 2)
+        self.assertEqual(x["adcclk_hz"], 24_000_000)
 
     def test_prior_bit28_can_change_multiplier(self):
         x = simulate_configuration(self.config, 1 << 28)
@@ -54,6 +56,7 @@ class ClockTreeModelTests(unittest.TestCase):
         altered = {
             "instructions": dict(self.config["instructions"]),
             "constants": dict(self.config["constants"]),
+            "sram_tables": self.config["sram_tables"],
         }
         altered["instructions"]["set_pll_source_multiplier"] = 0x100000
         x = simulate_configuration(altered)
@@ -73,6 +76,8 @@ class ClockTreeModelTests(unittest.TestCase):
         self.assertEqual(
             r["reset_default_software_profile"]["pclk2_hz"], 48_000_000
         )
+        self.assertEqual(r["restored_sram_table_evidence"]["apb_shift_first8"],
+                         [0, 0, 0, 0, 1, 2, 3, 4])
 
 
 if __name__ == "__main__":
