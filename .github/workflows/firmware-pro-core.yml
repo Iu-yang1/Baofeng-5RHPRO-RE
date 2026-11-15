@@ -1,0 +1,29 @@
+name: UV-5RH Pro independent firmware core
+
+on:
+  push:
+    branches:
+      - "research/**"
+    paths:
+      - "firmware-pro/**"
+      - ".github/workflows/firmware-pro-core.yml"
+  pull_request:
+    paths:
+      - "firmware-pro/**"
+      - ".github/workflows/firmware-pro-core.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain versions
+        run: rustc --version && cargo --version
+      - name: Test MCU-independent firmware core
+        run: cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
+      - name: Compile no_std library for host (logic only)
+        run: cargo check --manifest-path firmware-pro/core/Cargo.toml --lib --offline
