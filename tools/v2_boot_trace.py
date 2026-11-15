@@ -19,7 +19,7 @@ from capstone import (
     Cs, CS_ARCH_ARM, CS_MODE_LITTLE_ENDIAN, CS_MODE_THUMB,
     CS_GRP_CALL, CS_GRP_JUMP,
 )
-from capstone.arm import ARM_OP_IMM, ARM_OP_MEM, ARM_REG_PC
+from capstone.arm import ARM_OP_IMM, ARM_OP_MEM, ARM_OP_REG, ARM_REG_PC
 
 from mcu_fingerprint import decoded_payload
 
@@ -68,11 +68,15 @@ def trace(payload: bytes, instruction_limit: int = MAX_VISITED) -> dict:
     thumb2_clues: dict[str, list[str]] = {}
     literal_refs: list[dict[str, str]] = []
     peripheral_values: Counter[int] = Counter()
+    indirect_targets: Counter[int] = Counter()
+    indirect_branch_samples: list[dict[str, str]] = []
     calls: Counter[int] = Counter()
     branches: Counter[int] = Counter()
 
     while pending and len(visited) < instruction_limit:
         addr = pending.popleft()
+        # Trivial intra-basic-block constant propagation for LDR-literal -> BX/BLX reg.
+        loaded_literals: dict[int, int] = {}
         for _ in range(25000):
             if addr in visited or not (FLASH_ORIGIN <= addr <= end - 4):
                 break
@@ -92,6 +96,8 @@ def trace(payload: bytes, instruction_limit: int = MAX_VISITED) -> dict:
                     location = ((addr + 4) & ~3) + operand.mem.disp
                     if FLASH_ORIGIN <= location <= end - 4 and location % 4 == 0:
                         value = struct.unpack_from("<I", payload, location - FLASH_ORIGIN)[0]
+                        if inst.operands and inst.operands[0].type == ARM_OP_REG:
+                            loaded_literals[inst.operands[0].reg] = value
                         if LITERAL_ADDRESS_MIN <= value < LITERAL_ADDRESS_MAX:
                             peripheral_values[value] += 1
                             if len(literal_refs) < 250:
@@ -102,6 +108,23 @@ def trace(payload: bytes, instruction_limit: int = MAX_VISITED) -> dict:
                                 })
             is_branch = inst.group(CS_GRP_JUMP)
             is_call = inst.group(CS_GRP_CALL)
+            if mnemonic in ("bx", "blx") and inst.operands and inst.operands[0].type == ARM_OP_REG:
+                dest = loaded_literals.get(inst.operands[0].reg)
+                if dest is not None and valid_thumb_target(dest, end):
+                    target = dest & ~1
+                    indirect_targets[target] += 1
+                    if len(indirect_branch_samples) < 60:
+                        indirect_branch_samples.append({
+                            "branch_site": f"0x{addr:08X}",
+                            "resolved_target": f"0x{dest:08X}",
+                        })
+                    if target not in visited and target not in queued:
+                        pending.append(target)
+                        queued.add(target)
+            if is_call:
+                # CALL clobbers volatile registers. Do not attribute post-call
+                # indirect branches to pre-call constants.
+                loaded_literals.clear()
             if is_branch or is_call:
                 for operand in inst.operands:
                     if operand.type == ARM_OP_IMM:
@@ -168,6 +191,11 @@ def trace(payload: bytes, instruction_limit: int = MAX_VISITED) -> dict:
         "top_mnemonics": mnemonic_counts.most_common(25),
         "direct_call_target_count": len(calls),
         "direct_branch_target_count": len(branches),
+        "resolved_indirect_branch_targets": [
+            {"target": f"0x{target:08X}", "sites": count}
+            for target, count in indirect_targets.most_common(60)
+        ],
+        "indirect_branch_sample": indirect_branch_samples,
         "peripheral_ldr_sites": sum(peripheral_values.values()),
         "peripheral_addresses": [
             {"address": f"0x{k:08X}", "load_sites": v}
@@ -182,7 +210,8 @@ def trace(payload: bytes, instruction_limit: int = MAX_VISITED) -> dict:
         "notes": [
             "All results come from a read-only XOR-decoded update-package payload.",
             "The assumed load base 0x08001000 and all vector/call targets require independent validation.",
-            "Vector-derived control-flow traversal does not discover indirect calls and may decode embedded data.",
+            "Only simple same-basic-block LDR-literal -> BX/BLX register branches are resolved.",
+            "Control-flow traversal still misses general indirect calls and may decode embedded data.",
             "A Thumb-2 clue on a reachable path is evidence about the ISA, not a vendor/part-number ID.",
             "Unmatched ASCII strings may be missing due to encoding, compression or resource packaging.",
         ],
@@ -230,6 +259,9 @@ def main(argv: list[str] | None = None) -> int:
             print("reset", report["reset_candidate"], "stack", report["initial_stack_pointer_candidate"])
             print("statically reachable instructions", report["reachable_instruction_candidates"])
             print("Thumb-2 M3+ candidate instructions", report["thumb2_m3_plus_clues"])
+            print("Resolved indirect BX/BLX target samples:")
+            for item in report["indirect_branch_sample"][:15]:
+                print(" ", item)
             print("Reset disassembly:")
             for line in report["reset_linear_disassembly"]:
                 print(" ", line)
