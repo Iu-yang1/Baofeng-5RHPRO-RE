@@ -56,6 +56,17 @@ python tools/usart_clock_callers.py firmware/BF_5RH_501_v2_0_9.dat
 
 Read the [function-level V2 clock tree / UART / timer reverse-engineering report (简体中文)](docs/v2-0-09-clock-tree-dataflow.zh-CN.md) for the complete register addresses, machine-code evidence, limitations and V1/V2 comparison.
 
+### Experimental MCU identification using the programming cable
+
+An experimental, **compile-only** Cortex-M3/M4 MCU identity diagnostic
+is available at [firmware-pro/diagnostics/mcu-id-uart](firmware-pro/diagnostics/mcu-id-uart/README.md).
+It can report ARM CPUID and conditional vendor identity fields over a
+candidate USART1 UART connection; a host serial parser is included.
+This is **not a tested, installable firmware image**: the factory update
+protocol contains a Flash-erase step, and the V2 GPIO/UART physical path,
+startup clock and recovery behavior are not verified. There is no SWD
+or physical device ID read in the repository so far.
+
 ### V1/V2 instruction-level identity-register audit
 
 [中文报告：UID / F_SIZE / ARM CPUID / AT32 PID 的 Thumb CFG 读取审计](docs/v1-v2-mcu-id-cfg-reads.zh-CN.md)
