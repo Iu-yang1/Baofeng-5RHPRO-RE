@@ -26,6 +26,12 @@ jobs:
         run: |
           python tools/peripheral_clock_constraints.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/peripheral_clock_constraints.py --scope vectors --json firmware/BF_5RH_501_v1_1_04.dat firmware/BF_5RH_501_v2_0_9.dat > v1-v2-peripheral-clock-constraints.json
+      - name: Inspect USART2 BRR and TIM3 prescaler calculation code
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08032D20 --end 0x08032DB0
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080324F0 --end 0x08032574
+          python tools/clock_register_trace.py --show-context --pc-from 0x08032D40 --pc-to 0x08032D95 firmware/BF_5RH_501_v2_0_9.dat
+          python tools/clock_register_trace.py --show-context --pc-from 0x08032520 --pc-to 0x08032560 firmware/BF_5RH_501_v2_0_9.dat
       - name: Store derived metadata only
         uses: actions/upload-artifact@v4
         with:
