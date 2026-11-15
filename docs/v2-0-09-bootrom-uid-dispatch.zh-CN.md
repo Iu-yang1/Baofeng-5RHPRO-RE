@@ -91,3 +91,8 @@ python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x080012
 同时新确认上层 R0=`0x10000`、R1=`0x380000`、R2=`1` 与 AIR32 SDK 常量 `RCC_PLLSource_HSE_Div1`、`RCC_PLLMul_16`、`FLASH_Div_2` 对应，构成条件 **8 MHz ×16 = 128 MHz** 的时钟请求（非实测）。另需强调：标准 AIR32F103RPT6 只有 256 KiB Flash，与 V2 在 `0x08061A54` 的真实读取矛盾，**芯片具体型号仍未确定**。
 
 参见 [AIR32 SDK 指纹深度交叉验证报告](v2-0-09-air32-sdk-fingerprint.zh-CN.md)。原文此前“ROM 接口完全未知”应细分：SDK 侧的 `SysFreq_Set` 名称和参数映射已识别，但 ROM 函数实现、UID 各分支语义及具体芯片仍未知。
+
+
+## 2026-11-15：UID 分支最终 CFGR 指令补证
+
+新的 [ROM/RCC MMIO 完整审计](v2-0-09-rom-cfgr-mmio-audit.zh-CN.md) 已确认：`0x1C` 分支在 ROM 调用前通过 `0x080012F0` 和 `0x080012F8` 两次写入 `RCC_CFGR(0x40021004)`，先 `&0xEFC3FFFF` 清 bit 28、bits 21:18，后 `|0x00380000` 置 PLL x16 编码；`0x1A/0x1B` 不执行这一专属动作。在所有分支收尾 `0x08001316`，原厂写入 `(CFGR & ~0x30000) | 0x10000` 选择不分频的 HSE PLL 来源。逐分支调用现场也已确定：`0x1A/0x1B` 的 `(r0,r1,r2,r3)=(0x380000,1,0,1)`；`0x1C` 的 `(r0,r1,r2)=(1,0,1)`，`r3` 是 `BLX` 的 ROM 指针而非第 4 个常量参数。仍不推定未知 ROM 函数原型、执行结果或物理 MCU 型号。
