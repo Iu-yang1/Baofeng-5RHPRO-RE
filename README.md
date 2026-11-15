@@ -70,6 +70,22 @@ python tools/v2_memory_layout.py firmware/BF_5RH_501_v2_0_9.dat
 cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
 ```
 
+### Pro V2 MCU identification (amoxu methodology, verified exclusions)
+
+[Read the Chinese source-backed MCU identification report](docs/v2-0-09-mcu-identification-amoxu.zh-CN.md).
+
+The **standard AT32F421C8T7** used in ordinary UV-5RH/5RM is excluded by **five** independent Pro V2 facts: actual scatterload reads Flash at `0x08061A54` (>64KiB), startup RAM/MSP exceeds 16KiB, three USARTs are initialized, USART2 uses a DMA1-channel-6-compatible address, and user board photos show LQFP64 instead of LQFP48. **Do not reuse its 64K/16K linker or PAC.**
+
+AT32F403ARET7/ARGT7, AT32F407RET7/RGT7 and GD32F303RGT6 are resource-compatible candidates, **not chip identifications**. The original clock getter treats CRM_CFG bit28 as part of the PLL multiplier, while AT32F403A/407 official manuals assign it to ADC prescaling. Thus even family-level registers have unresolved differences.
+
+```sh
+python tools/v2_mcu_candidate_matrix.py firmware/BF_5RH_501_v2_0_9.dat
+python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
+python tools/at32_readonly_id_decode.py --cpuid 0x410FC241 --debug-id 0x700502CE --project-byte 0x07  # synthetic example only
+```
+
+The identification scripts operate read-only on the stock package or supplied numeric IDs. No physical SWD identity read was performed.
+
 ## Original collected utilities
 
 - `fwtool.py`: package XOR packing/unpacking tool.
