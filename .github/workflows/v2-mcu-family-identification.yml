@@ -30,6 +30,9 @@ jobs:
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_mcu_identity_xrefs.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-mcu-identity-xrefs.json
+      - name: Validate how the original firmware references unique-ID memory
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08001280 --end 0x08001332
       - name: Check original clock getter high PLL bit behavior
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08030C48 --end 0x08030C80
