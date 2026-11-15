@@ -257,6 +257,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("images", nargs="+", type=Path)
     parser.add_argument("--scope", choices=("reset", "vectors"), default="reset")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--show-context", action="store_true", help="Print instructions preceding matching access sites")
+    parser.add_argument("--pc-from", type=lambda s: int(s, 0), help="Inclusive start of PC range for text output")
+    parser.add_argument("--pc-to", type=lambda s: int(s, 0), help="Exclusive end of PC range for text output")
     args = parser.parse_args(argv)
     reports = []
     for path in args.images:
@@ -271,9 +274,17 @@ def main(argv: list[str] | None = None) -> int:
             print("instructions", r["unique_instruction_candidates"], "access counts", r["crm_related_access_counts"])
             print("Resolved startup register branches:", r["resolved_indirect_control_transfers"][:10])
             print("Clock/bus/Flash register accesses:")
-            for item in r["register_accesses"][:100]:
-                print(item["instruction"], "->", item["register"], item["type"],
+            for item in r["register_accesses"]:
+                pc = int(item["pc"], 16)
+                if args.pc_from is not None and pc < args.pc_from:
+                    continue
+                if args.pc_to is not None and pc >= args.pc_to:
+                    continue
+                print(item["instruction"], "->", item["bank"], item["register"], item["type"],
                       "value", item["write_constant"] or "unknown")
+                if args.show_context:
+                    for previous in item["context"]:
+                        print("   ", previous)
     return 0
 
 
