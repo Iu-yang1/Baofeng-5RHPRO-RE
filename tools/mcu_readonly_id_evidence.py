@@ -41,25 +41,7 @@ def require_unsigned(name: str, value: int | None, width: int = 32) -> None:
         raise ValueError(f"{name} must be an unsigned {width}-bit value")
 
 
-def interpret(
-    *, uid_first_word: int | None = None,
-    flash_size_halfword: int | None = None,
-    cpuid: int | None = None,
-    debug_id: int | None = None,
-    project_byte: int | None = None,
-    dpidr: int | None = None,
-) -> dict:
-    """Interpret independent observations without fabricating any live read."""
-    for name, value, bits in (
-        ("uid_first_word", uid_first_word, 32),
-        ("flash_size_halfword", flash_size_halfword, 16),
-        ("cpuid", cpuid, 32),
-        ("debug_id", debug_id, 32),
-        ("project_byte", project_byte, 8),
-        ("dpidr", dpidr, 32),
-    ):
-        require_unsigned(name, value, bits)
-
+def decode_air32_uid(uid_first_word: int | None) -> dict:
     uid_pattern = (uid_first_word >> 4) if uid_first_word is not None else None
     air_model = AIR32_UID_LOW_PATTERNS.get(uid_pattern)
     # Only report bits that classify the family, never the unique 32-bit UID.
@@ -74,7 +56,10 @@ def interpret(
             "and other chips are not ruled out. Unknown does not mean non-AIR32."
         ),
     }
+    return air
 
+
+def decode_flash_size(flash_size_halfword: int | None) -> dict:
     size = flash_size_halfword
     flash = {
         "reported_flash_size_kib": size if size not in (None, 0, 0xFFFF) else None,
@@ -89,7 +74,10 @@ def interpret(
             "alone, prove native internal Flash capacity."
         ),
     }
+    return flash
 
+
+def decode_arm_cpuid(cpuid: int | None) -> dict:
     core_part = (cpuid >> 4) & 0xFFF if cpuid is not None else None
     core = {
         "cpuid": fmt32(cpuid),
@@ -100,7 +88,10 @@ def interpret(
         "revision": cpuid & 0xF if cpuid is not None else None,
         "not_the_silicon_vendor": True,
     }
+    return core
 
+
+def decode_artery_ids(debug_id: int | None, project_byte: int | None) -> dict:
     at_part = PART_IDS.get(debug_id)
     project = PROJECT_TYPES.get(project_byte)
     expected_project = (
@@ -123,7 +114,10 @@ def interpret(
             "0x1FFFF7F3, not UID[31:24], carries the Artery series ID."
         ),
     }
+    return artery
 
+
+def decode_swd_dpidr(dpidr: int | None) -> dict:
     dp = {
         "dpidr": fmt32(dpidr),
         "manufacturer_jedec_11bit": (f"0x{(dpidr >> 1) & 0x7FF:03X}"
@@ -136,6 +130,34 @@ def interpret(
         "is_swd_dp_register_not_mem32": True,
         "meaning": "The SW-DP designer is not the manufacturer of the target MCU.",
     }
+    return dp
+
+
+def interpret(
+    *, uid_first_word: int | None = None,
+    flash_size_halfword: int | None = None,
+    cpuid: int | None = None,
+    debug_id: int | None = None,
+    project_byte: int | None = None,
+    dpidr: int | None = None,
+) -> dict:
+    """Interpret independent observations without fabricating any live read."""
+    for name, value, bits in (
+        ("uid_first_word", uid_first_word, 32),
+        ("flash_size_halfword", flash_size_halfword, 16),
+        ("cpuid", cpuid, 32),
+        ("debug_id", debug_id, 32),
+        ("project_byte", project_byte, 8),
+        ("dpidr", dpidr, 32),
+    ):
+        require_unsigned(name, value, bits)
+
+    air = decode_air32_uid(uid_first_word)
+    flash = decode_flash_size(flash_size_halfword)
+    core = decode_arm_cpuid(cpuid)
+    artery = decode_artery_ids(debug_id, project_byte)
+    dp = decode_swd_dpidr(dpidr)
+
     limits = [
         "No device was accessed and no actual register values were collected.",
         "A matching UID pattern is vendor-defined identification evidence, not a cryptographic proof.",
