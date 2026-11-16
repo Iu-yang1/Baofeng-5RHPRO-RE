@@ -116,6 +116,10 @@ GT25Q16A 2 MiB SPI NOR 已由照片独立确认，但**没有证据证明将其�
 
 因此，对外准确的当前结论是：**“UV-5RH Pro 主控顶面标记疑似 XL9951Q，用户确认 QFN64；XL9951Q / C9900238147 的公开器件目录登记为 QFN-64_8x8。实物半导体制造商及 MCU 芯片型号未定。”** 这比“直接认为 AIR32F103RPT6 / MH2103ARPT6 / AT32F403ARET7”更符合现有证据。
 
+## 2026-11-16：关于高 Flash 地址是否来自板载 SPI NOR 的新审计
+
+新增 [XL9951Q：scatterload 与 QSPI 解锁的启动顺序核对](xl9951q-boot-high-flash-vs-qspi-audit.zh-CN.md)，对 V2 原厂 **`0x08061A54` 压缩 SRAM 数据源**进行真实解压内容、原厂升级包覆盖区间和 Reset→scatterload→main→PLL/ROM helper 调用点交叉验证。数据显示 7084 字节 SRAM 初始化段来自原厂应用升级包内的压缩数据；**应用主入口的 `0x4002228C` QSPI 解锁晚于 scatterload**，所以不能解释其发生前就已能访问的高 Flash 地址。启动器及掩膜 ROM 是否另外建立映射仍未知；并未排除片外 NOR 的其他用途或读写方式。
+
 ## 复现及可继续解决的问题
 
 \`\`\`sh
