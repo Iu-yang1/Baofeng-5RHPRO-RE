@@ -75,6 +75,19 @@ def main():
                 print("KEY_TABLE",ix,"word",f"0x{int.from_bytes(data[idx:idx+4],'little'):08X}",
                       "key_mask",f"0x{int.from_bytes(data[idx:idx+2],'little'):04X}")
             print("KEY_TABLE_END")
+        if version=="v2":
+            narrow=[
+                (0x0800A3D0,0x0800A480),
+                (0x0800AF84,0x0800B038),
+                (0x0800B878,0x0800B8D8),
+                (0x080074BC,0x080075E4),
+                (0x08010840,0x0801092C)
+            ]
+            for st,en in narrow:
+                print("RF_UI_BEGIN",f"0x{st:08X}")
+                for ins in inspect_window(p,st,en):
+                    print("RF_UI",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
+                print("RF_UI_END",f"0x{st:08X}")
         verify={
           "v1":[(0x08002310,0x08002416),(0x08002470,0x080024F0),
                 (0x0800B100,0x0800B1BE)],
