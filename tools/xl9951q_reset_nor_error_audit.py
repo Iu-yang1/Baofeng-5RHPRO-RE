@@ -120,23 +120,21 @@ def _require(index: dict[int, dict], pc: int, name: str, operand: str) -> None:
 
 
 def _check_peripheral_paths(payload: bytes, info: dict, edition: str) -> dict:
-        checks = {}
-        for label in ("nor_status", "nor_program", "nor_erase", "nor_replay", "flash_erase"):
-            start, end = info[label]
-            index = {int(r["pc"], 16): r for r in inspect_window(payload, start, end)}
-            assertions = info[label + "_sites"]
-            for pc, (opcode, operand) in assertions.items():
-                _require(index, pc, opcode, operand)
-            checks[label] = len(assertions)
-    
-            # The fixed stock NOR status body tests only RDSR bit0 and branches
-        # back to the status command, with no bounded retry counter in this span.
-        status = inspect_window(payload, *info["nor_status"])
-        if any(r["mnemonic"] in ("cbz", "cbnz", "bhi", "bhs", "blo", "bls")
-               for r in status):
-            raise ValueError(f"{edition}: unexpected NOR status exit condition")
-    
-        return checks
+    checks = {}
+    for label in ("nor_status", "nor_program", "nor_erase", "nor_replay", "flash_erase"):
+        start, end = info[label]
+        index = {int(r["pc"], 16): r for r in inspect_window(payload, start, end)}
+        assertions = info[label + "_sites"]
+        for pc, (opcode, operand) in assertions.items():
+            _require(index, pc, opcode, operand)
+        checks[label] = len(assertions)
+
+    # RDSR checks WIP bit0 only; no other conditional exit in this span.
+    status = inspect_window(payload, *info["nor_status"])
+    if any(r["mnemonic"] in ("cbz", "cbnz", "bhi", "bhs", "blo", "bls")
+           for r in status):
+        raise ValueError(f"{edition}: unexpected NOR status exit condition")
+    return checks
 
 
 def audit_one(payload: bytes, edition: str) -> dict:
