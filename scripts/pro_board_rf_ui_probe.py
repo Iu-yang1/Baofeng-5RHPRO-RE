@@ -75,6 +75,18 @@ def main():
                 print("KEY_TABLE",ix,"word",f"0x{int.from_bytes(data[idx:idx+4],'little'):08X}",
                       "key_mask",f"0x{int.from_bytes(data[idx:idx+2],'little'):04X}")
             print("KEY_TABLE_END")
+        more={
+          "v1":[(0x08002380,0x08002418),(0x08002478,0x08002514),
+                (0x08002508,0x0800270A),(0x08024D20,0x08024D7C)],
+          "v2":[(0x08005E80,0x08005F2C),(0x08005F90,0x08006028),
+                (0x08006020,0x08006218),(0x08030D60,0x08030DF0),
+                (0x080316F8,0x0803173C)]
+        }
+        for start,end in more[version]:
+            print("RADIO_BEGIN",version,f"0x{start:08X}")
+            for ins in inspect_window(p,start,end):
+                print("RADIO",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
+            print("RADIO_END",version,f"0x{start:08X}")
         focus={
          "v1":[(0x08024D70,0x08024E40),(0x080256C0,0x08025730)],
          "v2":[(0x08030DD0,0x08030E98),(0x08031738,0x080317C0),
