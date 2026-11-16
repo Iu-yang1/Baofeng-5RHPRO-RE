@@ -17,7 +17,13 @@ jobs:
       - run: |
           python scripts/xl9951q_reset_nor_error_probe.py > nor-error-probe.txt
           cat nor-error-probe.txt
+      - name: Independently verify Reset and NOR status control flow
+        run: |
+          python tools/xl9951q_reset_nor_error_audit.py
+          python tools/xl9951q_reset_nor_error_audit.py --json > xl9951q-reset-nor-error-evidence.json
       - uses: actions/upload-artifact@v4
         with:
           name: nor-error-probe
-          path: nor-error-probe.txt
+          path: |
+            nor-error-probe.txt
+            xl9951q-reset-nor-error-evidence.json
