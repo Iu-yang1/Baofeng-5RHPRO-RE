@@ -30,22 +30,27 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
 
     def test_at32f421_rejected_independently(self):
         candidate = next(c for c in self.report["candidates"] if c["part"] == "AT32F421C8T7")
-        self.assertEqual(candidate["status"], "excluded_by_original_evidence")
+        self.assertEqual(candidate["status"], "published_standard_part_mismatch")
         self.assertEqual(len(candidate["failures"]), 5)
 
-    def test_f403a_and_f407_are_candidates_not_identified(self):
+    def test_f403a_f407_have_enough_resources_but_wrong_package(self):
         for row in self.report["candidates"]:
             if row["part"].startswith(("AT32F403A", "AT32F407")):
-                self.assertEqual(row["status"], "not_excluded_not_identified")
+                self.assertEqual(row["resource_status"], "resource_compatible_not_identified")
+                self.assertEqual(row["package_status"], "published_package_mismatch")
+                self.assertEqual(row["status"], "published_standard_part_mismatch")
 
     def test_gd32f303_ret6_ram_shortfall(self):
         selected = next(c for c in self.report["candidates"] if c["part"] == "GD32F303RET6")
-        self.assertEqual(selected["status"], "excluded_by_original_evidence")
-        self.assertEqual(len(selected["failures"]), 1)
+        self.assertEqual(selected["status"], "published_standard_part_mismatch")
+        self.assertEqual(len(selected["resource_failures"]), 1)
+        self.assertEqual(len(selected["failures"]), 2)
 
-    def test_gd32f303_rgt6_not_excluded(self):
+    def test_gd32f303_rgt6_resource_match_but_lqfp_package_fails(self):
         selected = next(c for c in self.report["candidates"] if c["part"] == "GD32F303RGT6")
-        self.assertEqual(selected["status"], "not_excluded_not_identified")
+        self.assertEqual(selected["resource_status"], "resource_compatible_not_identified")
+        self.assertEqual(selected["package_status"], "published_package_mismatch")
+        self.assertEqual(selected["status"], "published_standard_part_mismatch")
 
     def test_official_pid_maps_exact_part(self):
         r = inspect(0x410FC241, 0x700502CE, 0x07)
@@ -67,30 +72,28 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
         self.assertEqual(r["core_by_cpuid"], "Cortex-M3")
         self.assertIsNone(r["match_in_official_pid_table"])
 
-    def test_published_mega_hunt_skusk_vs_64pin_high_flash_image(self):
+    def test_qfn64_corrects_all_previous_lqfp_shortlists(self):
+        self.assertEqual(self.report["evidence"]["board_package"], "QFN64")
+        self.assertIn("user explicit correction", self.report["evidence"]["board_package_source"])
+        for row in self.report["candidates"]:
+            with self.subTest(part=row["part"]):
+                self.assertEqual(row["package_status"], "published_package_mismatch")
+                self.assertEqual(row["status"], "published_standard_part_mismatch")
+                self.assertIn("QFN64", row["failures"][-1])
+
+    def test_mh2103a_flash_and_package_are_separate_constraints(self):
         by_part = {row["part"]: row for row in self.report["candidates"]}
-        for part, reason in (
-            ("MH2103ARPT6", "Flash"),
-            ("MH2103AVET6", "package"),
-            ("MH2103AVGT6", "package"),
-            ("AIR32F103VET6", "package"),
-        ):
-            with self.subTest(part=part):
-                row = by_part[part]
-                self.assertEqual(row["status"], "excluded_by_original_evidence")
-                self.assertEqual(len(row["failures"]), 1)
-                self.assertIn(reason, row["failures"][0])
-        self.assertIn(
-            "physical_mcu", self.report["lineage_vs_hardware"]
-        )
-        self.assertIn(
-            "published-SKU conflict", self.report["interpretation"]
-        )
+        for part in ("MH2103ARPT6", "AIR32F103RPT6"):
+            self.assertEqual(len(by_part[part]["resource_failures"]), 1)
+            self.assertEqual(len(by_part[part]["failures"]), 2)
+        for part in ("MH2103AVET6", "MH2103AVGT6", "AIR32F103VET6"):
+            self.assertEqual(by_part[part]["resource_failures"], [])
+            self.assertEqual(len(by_part[part]["failures"]), 1)
 
     def test_source_range_comparison(self):
         m = {
             "part": "synthetic", "flash_kib": 256, "ram_kib": 96,
-            "usarts": 3, "dma_channels": None, "package": "LQFP64",
+            "usarts": 3, "dma_channels": None, "package": "QFN64",
             "source": "test",
         }
         row = compare_spec(m, self.report["evidence"])
