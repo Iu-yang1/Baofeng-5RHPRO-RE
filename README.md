@@ -6,6 +6,22 @@ Original reverse-engineering archive: https://github.com/kholdfuzion/Baofeng-5RH
 
 > **Hardware correction (2026-11-16): the UV-5RH Pro MCU package is QFN-64, as confirmed by the user.** Earlier photo-based LQFP64 identification and any LQFP64 pin-number guidance are retracted. Published LQFP64 parts in the comparative table are **not** package matches for this radio. MCU vendor and SKU remain unknown; firmware-only analysis continues.
 
+### Verified component catalogue record for the unidentified MCU
+
+The user confirmed the UV-5RH Pro main device is **QFN64** and provided the
+[JLCPCB catalogue record for `XL9951Q` / `C9900238147`](https://jlcpcb.com/partdetail/JLCPCBAssembly-XL9951Q/C9900238147),
+which specifies **QFN-64_8x8**. This is a strong match for the previously
+observed `XL9951Q`-like board marking, but the page classifies the part
+under `JLCPCB Assembly` / `Others/SMT` and gives **no** semiconductor
+manufacturer, CPU core, Flash/RAM size, original datasheet or pinout.
+The 8×8 mm figure is a **catalogue** body dimension, not a physical measurement
+on this radio.
+
+The physical part **label** is now plausibly identified, but the MCU's
+silicon origin and commercial die type **remain unknown**. The six stock
+AIR32-style ROM helpers establish **software lineage, not chip branding**.
+[Detailed catalogue evidence (中文)](docs/uv5rhpro-six-stock-mcu-lineage.zh-CN.md).
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
