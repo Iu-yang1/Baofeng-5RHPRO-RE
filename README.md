@@ -115,6 +115,26 @@ was conducted.
 python tools/xl9951q_journal_recovery_audit.py --json
 ```
 
+### XL9951Q: verified Reset-to-recovery and NOR error-path analysis
+
+The [cross-version Reset-to-journal and NOR status/error report (中文)](docs/xl9951q-reset-nor-error-propagation.zh-CN.md)
+extends the existing cold-start recovery audit all the way to the OEM
+Reset vector (`0x0800123D`), scatterload handoff, and the main
+prologue's fourth direct `BL` into recovery, for both V1.1.04
+and V2.0.09. Normal return from earlier startup functions remains a
+precondition; this is static CFG evidence, not a hardware boot trace.
+
+The SPI NOR RDSR `0x05` loop checks WIP bit0, not a full post-write
+verification or bounded retry. Each NOR erase/program path waits for WIP
+to clear; the recovery caller still clears MCU Flash journal metadata
+immediately after the NOR restore call without testing a distinct
+success result. These are specific software fault windows, **not**
+proof of failures on a real GT25Q16A.
+
+```sh
+python tools/xl9951q_reset_nor_error_audit.py --json
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
