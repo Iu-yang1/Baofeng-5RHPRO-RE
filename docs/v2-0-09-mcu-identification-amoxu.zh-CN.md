@@ -15,7 +15,7 @@
 
 | 项目 | 固件/图片证据 | 解释 |
 | --- | --- | --- |
-| MCU 封装 | 用户在 2026-11-16 明确更正 | **QFN-64**，而非此前误判 LQFP64；丝印尚不能对应公开型号 |
+| MCU 封装及目录匹配 | 用户实物清点 + [JLCPCB XL9951Q](https://jlcpcb.com/partdetail/JLCPCBAssembly-XL9951Q/C9900238147) | **QFN-64**；目录登记 `XL9951Q / C9900238147 / QFN-64_8x8`。丝印/目录匹配，但实际晶圆厂、内核与 Flash/RAM 未知 |
 | 应用大小 | .dat 去头解码后 **401408B / 392 KiB** | 仅有文件大小不足以确认内部 Flash |
 | **真实启动读取的 Flash 地址** | scatterload 描述符指向 **0x08061A54**；经 Thumb 解压过程成功还原 7084B | 不只是文件尾部填充，固件初始化会访问 0x0806xxxx 代码存储地址 |
 | 初始 SRAM 区域 | DATA 7084B + 清零区 63324B = **70408B**；向量 MSP 候选 **0x20011308** | 若依常规 SRAM 0x20000000 映射，16/64 KiB 无法承载；不等于测得 RAM 总容量 |
@@ -93,6 +93,8 @@ python tools/at32_readonly_id_decode.py --cpuid 0x410FC241 --debug-id 0x700502CE
 ~~~
 
 **上面是合成示例，不是用户 Pro 真正读到的数值。** 对官方表外的 PID 保持“未知”判断而非伪造厂商。
+
+**新增外部核对：** [JLCPCB C9900238147](https://jlcpcb.com/partdetail/JLCPCBAssembly-XL9951Q/C9900238147) 明确收录 `XL9951Q` 和 `QFN-64_8x8`。目录上的 `JLCPCB Assembly` 是该元件库的制造商字段，不能据此认为芯片由嘉立创设计/制造；页面不公布芯片内核、Flash、SRAM 和晶圆厂。此记录只能增强主控顶面标记与封装的可信度，不改变软件 SDK 谱系与物理芯片厂商必须分开研究的结论。参见 [六版固件及 XL9951Q 目录证据](uv5rhpro-six-stock-mcu-lineage.zh-CN.md)。
 
 ## 2026-11-16 更新：六版软件指纹恒定与 MH2103A 的逐 SKU 容量核实（已按 QFN64 更正）
 
