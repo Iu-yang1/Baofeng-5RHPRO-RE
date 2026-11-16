@@ -16,7 +16,7 @@ class UpgradeToolIlTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from upgrade_tool_il_audit import collect, verify_upgrade_il, DATA_PATH
-        cls.verify = verify_upgrade_il
+        cls.verify = staticmethod(verify_upgrade_il)
         cls.snapshot = collect(ROOT / DATA_PATH)
 
     def test_original_release_method_tokens_and_protocol(self):
