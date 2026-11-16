@@ -16,8 +16,8 @@ IMAGES={
  "v2":"firmware/BF_5RH_501_v2_0_9.dat",
 }
 WINDOWS={
- "v1":[(0x0800AAE0,0x0800AD95),(0x0800AD90,0x0800B000)],
- "v2":[(0x080102C0,0x08010470),(0x08010470,0x08010655)],
+ "v1":[(0x0800AB74,0x0800AC18),(0x0800E590,0x0800E680),(0x0800ED28,0x0800EDE0),(0x08002EE4,0x08002F40)],
+ "v2":[(0x080103C8,0x080104A8),(0x08014180,0x08014280),(0x08014A00,0x08014AF0),(0x080069F4,0x08006A50)],
 }
 
 def get_word(b, pc):
@@ -55,7 +55,7 @@ for edition,path in IMAGES.items():
         print("\n--------- WINDOW",hex(start),hex(end),"---------")
         for r in inspect_window(p,start,end):
             print(r["pc"],r["mnemonic"],r["operands"],"pool="+r.get("literal_value",""))
-    targets=[0x08007C64,0x08007C94,0x08012D98] if edition=="v1" else [0x0800D304,0x0800D334,0x080190E0]
+    targets=[0x0800AB74,0x08007C64,0x08007C80,0x0800E5CC,0x0800ED50,0x08012D98] if edition=="v1" else [0x080103C8,0x0800D304,0x0800D320,0x080141DC,0x08014A28,0x080190E0]
     print("\n== CALLS TO CANDIDATES ==")
     refs=find_calls(p,targets)
     for k,v in refs.items():
