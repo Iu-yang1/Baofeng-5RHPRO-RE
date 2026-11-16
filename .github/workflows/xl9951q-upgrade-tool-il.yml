@@ -20,6 +20,10 @@ jobs:
         run: |
           python tools/upgrade_tool_il_audit.py > xl9951q-upgrade-tool-il-overview.txt
           python tools/upgrade_tool_il_audit.py --json > xl9951q-upgrade-tool-il.json
+          python tools/upgrade_tool_il_audit.py --verify > xl9951q-upgrade-tool-il-verified.json
+          python tools/xl9951q_high_flash_nor_audit.py --json > xl9951q-high-flash-nor-verified.json
+          cat xl9951q-upgrade-tool-il-verified.json
+          cat xl9951q-high-flash-nor-verified.json
           cat xl9951q-upgrade-tool-il-overview.txt
       - name: Read-only disassembly of application high Flash callers
         run: |
@@ -44,6 +48,8 @@ jobs:
           path: |
             xl9951q-upgrade-tool-il-overview.txt
             xl9951q-upgrade-tool-il.json
+            xl9951q-upgrade-tool-il-verified.json
+            xl9951q-high-flash-nor-verified.json
             xl9951q-v2-high-address-callers.txt
             xl9951q-v1-high-address-callers.txt
             xl9951q-v2-nor-helpers.txt
