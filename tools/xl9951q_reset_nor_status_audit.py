@@ -141,6 +141,8 @@ def classify_status_result(spi_timed_out: bool, actual_status: int = 0) -> dict:
 def verify_version(payload: bytes, edition: str) -> dict:
     spec = VERSIONS[edition]
     reset = verify_reset_to_main(payload, spec["reset"], edition == "v2")
+    if reset["reset_vector"] != "0x0800123D":
+        raise ValueError(f"{edition}: reset vector no longer points to tested Thumb veneer")
     journal = verify_recovery(payload, edition)
     index = {}
     for start, end in spec["windows"]:
