@@ -35,6 +35,21 @@ class SixVersionMCULineageTests(unittest.TestCase):
                 self.assertEqual(row["helper_matching_bytes_vs_v2_0_9"], 0xD8)
                 self.assertEqual(row["helper_window_bytes"], 0xD8)
 
+    def test_all_six_factory_releases_share_identical_helper_bytes(self):
+        reference = self.output["versions"]["BF_5RH_501_v2_0_9.dat"]
+        for name, row in self.output["versions"].items():
+            with self.subTest(name=name):
+                self.assertTrue(row["helper_exactly_same_as_v2_0_9"])
+                self.assertEqual(
+                    row["helper_window_sha256"],
+                    reference["helper_window_sha256"],
+                )
+                self.assertEqual(row["aligned_magic_constant_words_present"], 9)
+                self.assertEqual(
+                    set(row["nonliteral_or_unreferenced_constant_words"]),
+                    {"0x40016C18", "0xA5A5A5A5", "0x5A5A5A5A"},
+                )
+
     def test_original_images_all_report_actual_counts(self):
         self.assertEqual(len(LITERALS), 12)
         for name, row in self.output["versions"].items():
