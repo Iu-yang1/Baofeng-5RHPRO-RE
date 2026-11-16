@@ -110,6 +110,12 @@ def main():
                 for r in inspect_window(p,st,en):
                     print("LCD_INIT",r["pc"],r["mnemonic"],r["operands"],r.get("literal_value",""))
                 print("LCD_INIT_END",f"0x{st:08X}")
+        if version=="v2":
+            for st,en in [(0x0801514C,0x0801525C),(0x08015000,0x08015038)]:
+                print("PANEL_INIT_BEGIN",f"0x{st:08X}")
+                for r in inspect_window(p,st,en):
+                    print("PANEL_INIT",r["pc"],r["mnemonic"],r["operands"],r.get("literal_value",""))
+                print("PANEL_INIT_END",f"0x{st:08X}")
         verify={
           "v1":[(0x08002310,0x08002416),(0x08002470,0x080024F0),
                 (0x0800B100,0x0800B1BE)],
