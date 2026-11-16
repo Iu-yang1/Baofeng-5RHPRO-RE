@@ -31,7 +31,7 @@ EVIDENCE = {
             0x080030EC: ("bne", "#0x80030ce"),
             0x080030EE: ("pop", "{r4, r5, r6, pc}"),
         },
-        "nor_erase": (0x08007C94, 0x08007CD8),
+        "nor_erase": (0x08007C94, 0x08007CDA),
         "nor_erase_sites": {
             0x08007C98: ("bl", "#0x80030f4"),
             0x08007C9C: ("bl", "#0x80030c8"),
