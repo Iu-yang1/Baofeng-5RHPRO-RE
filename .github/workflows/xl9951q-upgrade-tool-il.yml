@@ -1,0 +1,29 @@
+name: XL9951Q archived UpgradeTool IL reconnaissance
+on:
+  push:
+    branches:
+      - research/xl9951q-high-flash-il-cfg
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-il:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install offline .NET IL parser
+        run: python -m pip install dnfile dncil
+      - name: Parse archived vendor .NET IL statically
+        run: |
+          python tools/upgrade_tool_il_audit.py > xl9951q-upgrade-tool-il-overview.txt
+          python tools/upgrade_tool_il_audit.py --json > xl9951q-upgrade-tool-il.json
+          cat xl9951q-upgrade-tool-il-overview.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xl9951q-upgrade-tool-il-metadata
+          path: |
+            xl9951q-upgrade-tool-il-overview.txt
+            xl9951q-upgrade-tool-il.json
