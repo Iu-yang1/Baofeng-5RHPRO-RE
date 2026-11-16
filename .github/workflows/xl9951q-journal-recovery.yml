@@ -20,7 +20,14 @@ jobs:
         run: |
           python tools/xl9951q_journal_recovery_discovery.py > xl9951q-journal-recovery-trace.txt
           cat xl9951q-journal-recovery-trace.txt
+      - name: Verify restored transaction control flow
+        run: |
+          python tools/xl9951q_journal_recovery_audit.py
+          python tools/xl9951q_journal_recovery_audit.py --json > xl9951q-journal-recovery-validated.json
+          cat xl9951q-journal-recovery-validated.json
       - uses: actions/upload-artifact@v4
         with:
           name: xl9951q-journal-recovery-trace
-          path: xl9951q-journal-recovery-trace.txt
+          path: |
+            xl9951q-journal-recovery-trace.txt
+            xl9951q-journal-recovery-validated.json
