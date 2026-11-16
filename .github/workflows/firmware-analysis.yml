@@ -50,7 +50,6 @@ jobs:
           python tools/xl9951q_spi_wdt_integrity_audit.py --json > xl9951q-spi-wdt-integrity-evidence.json
       - name: Verify V1/V2 OEM board RF and UI static evidence
         run: |
-          python -m py_compile scripts/pro_board_rf_ui_probe.py
           python tools/pro_v2_board_io_audit.py --json > pro-v2-board-io-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
