@@ -73,8 +73,9 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
         self.assertIsNone(r["match_in_official_pid_table"])
 
     def test_qfn64_corrects_all_previous_lqfp_shortlists(self):
-        self.assertEqual(self.report["evidence"]["board_package"], "QFN64")
-        self.assertIn("user explicit correction", self.report["evidence"]["board_package_source"])
+        self.assertEqual(self.report["evidence"]["board_package_family"], "QFN")
+        self.assertEqual(self.report["evidence"]["board_package_pin_count"], 64)
+        self.assertIn("user-recounted", self.report["evidence"]["board_package_source"])
         for row in self.report["candidates"]:
             with self.subTest(part=row["part"]):
                 self.assertEqual(row["package_status"], "published_package_mismatch")
@@ -89,6 +90,23 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
         for part in ("MH2103AVET6", "MH2103AVGT6", "AIR32F103VET6"):
             self.assertEqual(by_part[part]["resource_failures"], [])
             self.assertEqual(len(by_part[part]["failures"]), 1)
+
+    def test_qfn64_package_only_matches_package_not_mcu_identity(self):
+        evidence = self.report["evidence"]
+        synthetic = {
+            "part": "unidentified-QFN64",
+            "flash_kib": 512,
+            "ram_kib": 96,
+            "usarts": 3,
+            "dma_channels": None,
+            "package": "QFN64",
+            "source": "synthetic test only",
+        }
+        result = compare_spec(synthetic, evidence)
+        self.assertEqual(result["status"], "not_excluded_not_identified")
+        self.assertEqual(result["resource_status"], "resource_compatible_not_identified")
+        self.assertEqual(result["package_status"], "published_package_match_not_mcu_identification")
+        self.assertEqual(result["failures"], [])
 
     def test_source_range_comparison(self):
         m = {
