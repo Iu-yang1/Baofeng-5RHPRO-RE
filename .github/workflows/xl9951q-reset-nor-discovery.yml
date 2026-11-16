@@ -1,8 +1,5 @@
-name: XL9951Q reset-to-recovery and NOR error reconnaissance
+name: XL9951Q Reset and NOR error-flow static evidence
 on:
-  push:
-    branches:
-      - research/xl9951q-reset-nor-status-error-flow
   workflow_dispatch:
 permissions:
   contents: read

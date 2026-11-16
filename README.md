@@ -115,6 +115,25 @@ was conducted.
 python tools/xl9951q_journal_recovery_audit.py --json
 ```
 
+### XL9951Q Reset-to-recovery and NOR error propagation (V1/V2)
+
+[New static evidence report (中文)](docs/xl9951q-reset-to-journal-nor-errors.zh-CN.md)
+connects the exact Reset vector `0x0800123D` to the validated
+scatterload/main path and early main `BL` of the journal recovery
+routine. Both V1 and V2 have a bounded per-byte SPI transmit/receive
+poll (immediate `0xC8`), but an SPI timeout returns `0x00`, which the
+NOR `0x05` WIP polling routine interprets as ready. The NOR WIP loop
+has no independent deadline in the audited function; recovery clears
+the MCU Flash journal after the restore call without checking a
+distinct verified-success result.
+
+```sh
+python tools/xl9951q_reset_nor_status_audit.py --json
+```
+
+These are read-only machine-code findings, not evidence of a reproduced
+power-failure defect or an identified XL9951Q silicon vendor.
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
