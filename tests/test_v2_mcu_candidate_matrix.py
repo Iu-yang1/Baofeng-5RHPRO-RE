@@ -122,6 +122,22 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
         self.assertEqual(result["package_status"], "published_package_match_not_mcu_identification")
         self.assertEqual(result["failures"], [])
 
+    def test_catalogue_package_qfn64_8x8_parsed_as_64_pins(self):
+        # JLCPCB's 8x8 dimensions are not part of the pad count.
+        fixture = {
+            "part": "fictional-silicon-with-catalogue-package",
+            "flash_kib": 512,
+            "ram_kib": 96,
+            "usarts": 3,
+            "dma_channels": None,
+            "package": "QFN-64_8x8",
+            "source": "synthetic",
+        }
+        report = compare_spec(fixture, self.report["evidence"])
+        self.assertEqual(report["status"], "not_excluded_not_identified")
+        self.assertEqual(report["package_status"],
+                         "published_package_match_not_mcu_identification")
+
     def test_source_range_comparison(self):
         m = {
             "part": "synthetic", "flash_kib": 256, "ram_kib": 96,
