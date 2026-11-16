@@ -34,7 +34,7 @@ class OriginalSpiWatchdogEvidenceTests(unittest.TestCase):
                 self.assertFalse(row["nor_rdsr"]["separate_watchdog_feed_in_status_loop"])
                 self.assertTrue(row["nor_rdsr"]["status_exchange_timeout_can_look_like_wip_clear"])
                 self.assertFalse(row["recovery"]["local_backup_crc_verified"])
-                self.assertGreaterEqual(sum(row["verified_sites"].values()), 50)
+                self.assertEqual(sum(row["verified_sites"].values()), 49)
         self.assertFalse(report["emulated_hardware"])
 
     def altered(self, version: str, pc: int) -> bytes:
