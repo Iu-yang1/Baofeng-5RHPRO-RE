@@ -77,8 +77,8 @@ def inspect_clock_init(payload: bytes, base: int) -> dict:
         "flash_acr_change_sequence": effects,
         "flash_acr_compatible_meaning": {
             "0x10": "enable prefetch bit (STM32F1/AIR32-compatible map)",
-            "0x03": "clear latency field before setting 0x02",
-            "0x02": "FLASH_ACR latency field becomes 2 wait states",
+            "0x03": "clear only latency bits 1:0; bit 2 is preserved",
+            "0x02": "set bit 1; if bit 2 was zero, LATENCY[2:0] becomes 010 (2 wait states)",
         },
         "does_not_reference_unlock_register_as_literal": ROM_PLL_UNLOCK not in literals,
         "scope": "exact 160-byte Thumb function and its two literal words only",
