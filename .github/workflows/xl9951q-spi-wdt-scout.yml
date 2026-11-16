@@ -18,7 +18,14 @@ jobs:
         run: |
           python scripts/xl9951q_spi_wdt_scout.py > xl9951q-spi-wdt-scout.txt
           cat xl9951q-spi-wdt-scout.txt
+      - name: Verify bounded OEM SPI and IWDG sites
+        run: |
+          python tools/xl9951q_spi_wdt_integrity_audit.py
+          python tools/xl9951q_spi_wdt_integrity_audit.py --json > xl9951q-spi-wdt-integrity.json
+          cat xl9951q-spi-wdt-integrity.json
       - uses: actions/upload-artifact@v4
         with:
           name: xl9951q-spi-wdt-scout
-          path: xl9951q-spi-wdt-scout.txt
+          path: |
+            xl9951q-spi-wdt-scout.txt
+            xl9951q-spi-wdt-integrity.json
