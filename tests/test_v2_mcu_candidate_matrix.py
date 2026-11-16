@@ -30,22 +30,27 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
 
     def test_at32f421_rejected_independently(self):
         candidate = next(c for c in self.report["candidates"] if c["part"] == "AT32F421C8T7")
-        self.assertEqual(candidate["status"], "excluded_by_original_evidence")
+        self.assertEqual(candidate["status"], "published_standard_part_mismatch")
         self.assertEqual(len(candidate["failures"]), 5)
 
-    def test_f403a_and_f407_are_candidates_not_identified(self):
+    def test_f403a_f407_have_enough_resources_but_wrong_package(self):
         for row in self.report["candidates"]:
             if row["part"].startswith(("AT32F403A", "AT32F407")):
-                self.assertEqual(row["status"], "not_excluded_not_identified")
+                self.assertEqual(row["resource_status"], "resource_compatible_not_identified")
+                self.assertEqual(row["package_status"], "published_package_mismatch")
+                self.assertEqual(row["status"], "published_standard_part_mismatch")
 
     def test_gd32f303_ret6_ram_shortfall(self):
         selected = next(c for c in self.report["candidates"] if c["part"] == "GD32F303RET6")
-        self.assertEqual(selected["status"], "excluded_by_original_evidence")
-        self.assertEqual(len(selected["failures"]), 1)
+        self.assertEqual(selected["status"], "published_standard_part_mismatch")
+        self.assertEqual(len(selected["resource_failures"]), 1)
+        self.assertEqual(len(selected["failures"]), 2)
 
-    def test_gd32f303_rgt6_not_excluded(self):
+    def test_gd32f303_rgt6_resource_match_but_lqfp_package_fails(self):
         selected = next(c for c in self.report["candidates"] if c["part"] == "GD32F303RGT6")
-        self.assertEqual(selected["status"], "not_excluded_not_identified")
+        self.assertEqual(selected["resource_status"], "resource_compatible_not_identified")
+        self.assertEqual(selected["package_status"], "published_package_mismatch")
+        self.assertEqual(selected["status"], "published_standard_part_mismatch")
 
     def test_official_pid_maps_exact_part(self):
         r = inspect(0x410FC241, 0x700502CE, 0x07)
@@ -67,10 +72,76 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
         self.assertEqual(r["core_by_cpuid"], "Cortex-M3")
         self.assertIsNone(r["match_in_official_pid_table"])
 
+    def test_qfn64_corrects_all_previous_lqfp_shortlists(self):
+        self.assertEqual(self.report["evidence"]["board_package_family"], "QFN")
+        self.assertEqual(self.report["evidence"]["board_package_pin_count"], 64)
+        self.assertIn("user-recounted", self.report["evidence"]["board_package_source"])
+        for row in self.report["candidates"]:
+            with self.subTest(part=row["part"]):
+                self.assertEqual(row["package_status"], "published_package_mismatch")
+                self.assertEqual(row["status"], "published_standard_part_mismatch")
+                self.assertIn("QFN64", row["failures"][-1])
+
+    def test_mh2103a_flash_and_package_are_separate_constraints(self):
+        by_part = {row["part"]: row for row in self.report["candidates"]}
+        for part in ("MH2103ARPT6", "AIR32F103RPT6"):
+            self.assertEqual(len(by_part[part]["resource_failures"]), 1)
+            self.assertEqual(len(by_part[part]["failures"]), 2)
+        for part in ("MH2103AVET6", "MH2103AVGT6", "AIR32F103VET6"):
+            self.assertEqual(by_part[part]["resource_failures"], [])
+            self.assertEqual(len(by_part[part]["failures"]), 1)
+
+    def test_xl9951q_catalogue_is_only_package_marking_evidence(self):
+        evidence = self.report["evidence"]
+        catalog = evidence["matching_jlcpcb_catalog_record"]
+        self.assertEqual(evidence["observed_top_marking_candidate"], "XL9951Q")
+        self.assertEqual(catalog["part_number"], "XL9951Q")
+        self.assertEqual(catalog["jlcpcb_part_number"], "C9900238147")
+        self.assertEqual(catalog["published_package"], "QFN-64_8x8")
+        self.assertEqual(catalog["listed_body_size_mm"], [8, 8])
+        self.assertEqual(catalog["listed_manufacturer_field"], "JLCPCB Assembly")
+        self.assertFalse(catalog["manufacturer_field_is_silicon_vendor_evidence"])
+        self.assertIsNone(catalog["cpu_core"])
+        self.assertIsNone(catalog["flash_kib"])
+        self.assertIsNone(catalog["ram_kib"])
+
+    def test_qfn64_package_only_matches_package_not_mcu_identity(self):
+        evidence = self.report["evidence"]
+        synthetic = {
+            "part": "unidentified-QFN64",
+            "flash_kib": 512,
+            "ram_kib": 96,
+            "usarts": 3,
+            "dma_channels": None,
+            "package": "QFN64",
+            "source": "synthetic test only",
+        }
+        result = compare_spec(synthetic, evidence)
+        self.assertEqual(result["status"], "not_excluded_not_identified")
+        self.assertEqual(result["resource_status"], "resource_compatible_not_identified")
+        self.assertEqual(result["package_status"], "published_package_match_not_mcu_identification")
+        self.assertEqual(result["failures"], [])
+
+    def test_catalogue_package_qfn64_8x8_parsed_as_64_pins(self):
+        # JLCPCB's 8x8 dimensions are not part of the pad count.
+        fixture = {
+            "part": "fictional-silicon-with-catalogue-package",
+            "flash_kib": 512,
+            "ram_kib": 96,
+            "usarts": 3,
+            "dma_channels": None,
+            "package": "QFN-64_8x8",
+            "source": "synthetic",
+        }
+        report = compare_spec(fixture, self.report["evidence"])
+        self.assertEqual(report["status"], "not_excluded_not_identified")
+        self.assertEqual(report["package_status"],
+                         "published_package_match_not_mcu_identification")
+
     def test_source_range_comparison(self):
         m = {
             "part": "synthetic", "flash_kib": 256, "ram_kib": 96,
-            "usarts": 3, "dma_channels": None, "package": "LQFP64",
+            "usarts": 3, "dma_channels": None, "package": "QFN64",
             "source": "test",
         }
         row = compare_spec(m, self.report["evidence"])

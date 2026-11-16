@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Compare original UV-5RH Pro V2 instruction evidence to MCU public specifications.
 
-All board claims are hypotheses except the supplied photo-observed LQFP64.
+The user verified that the MCU is QFN and physically counted 64 terminals.
+Do not infer pad mapping from the former photographed LQFP64 assumption.
 A pass means "not excluded by these tests"; it NEVER identifies the MCU.
 """
 
@@ -9,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 from mcu_fingerprint import decoded_payload
@@ -19,8 +21,9 @@ FLASH_BASE = 0x08000000
 # Recovered ARM scatterload descriptor: this flash address is actually read
 # by the startup decompressor, rather than simply being present in a .dat.
 SCATTERLOAD_COMPRESSED_SOURCE = 0x08061A54
-# The actual physical Pro board package has 64 perimeter pins (user photos).
-OBSERVED_PACKAGE = "LQFP64"
+# User-confirmed package technology and physically counted terminals.
+OBSERVED_PACKAGE_FAMILY = "QFN"
+OBSERVED_PACKAGE_PIN_COUNT = 64
 
 # Memory, USART and packages derived from original manufacturer product pages,
 # not from the ordinary UV-5RH reference firmware. Peripheral versions must
@@ -63,6 +66,30 @@ SPECS = (
         "source": "https://c.vue2.cn/attachment/20220605164850945_AIR32F103芯片数据手册1.0.0.pdf",
     },
     {
+        "part": "AIR32F103VET6",
+        "flash_kib": 512, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP100",
+        "source": "https://wiki.luatos.com/chips/air32f103/switchFromSxx.html",
+    },
+    {
+        "part": "MH2103ARPT6",
+        "flash_kib": 256, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://www.megahuntmicro.com/article/40/24.html",
+    },
+    {
+        "part": "MH2103AVET6",
+        "flash_kib": 512, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP100",
+        "source": "https://www.megahuntmicro.com/article/40/24.html",
+    },
+    {
+        "part": "MH2103AVGT6",
+        "flash_kib": 1024, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP100",
+        "source": "https://www.megahuntmicro.com/article/40/24.html",
+    },
+    {
         "part": "GD32F303RET6",
         "flash_kib": 512, "ram_kib": 64, "usarts": 3,
         "dma_channels": None, "package": "LQFP64",
@@ -78,22 +105,36 @@ SPECS = (
 
 
 def compare_spec(spec: dict, evidence: dict) -> dict:
-    failures = []
+    resource_failures = []
     if spec["flash_kib"] * 1024 <= evidence["highest_executed_flash_source_offset"]:
-        failures.append("insufficient addressable program Flash for startup's actual source address")
+        resource_failures.append("insufficient addressable program Flash for startup's actual source address")
     if spec["ram_kib"] * 1024 < evidence["initial_sp_offset_from_sram"]:
-        failures.append("initial MSP and zero region extend beyond specified SRAM")
+        resource_failures.append("initial MSP and zero region extend beyond specified SRAM")
     if spec["usarts"] < evidence["independent_usart_instances"]:
-        failures.append("fewer USART instances than original code initializes")
-    if spec["package"] != evidence["photo_package"]:
-        failures.append("manufacturer package does not match the 64-pin photographed MCU")
+        resource_failures.append("fewer USART instances than original code initializes")
+    # A label like QFN-64_8x8 contains 64 pins; 8x8 is body size, not pins.
+    package_match = re.match(r"^(LQFP|QFN)[-_]?(\d+)(?:[_-]|$)", spec["package"].upper())
+    if package_match is None:
+        raise ValueError(f"unsupported published package format: {spec['package']}")
+    published_family, count = package_match.groups()
+    package_mismatch = (
+        published_family != evidence["board_package_family"]
+        or int(count) != evidence["board_package_pin_count"]
+    )
     if (spec["dma_channels"] is not None and
             spec["dma_channels"] < evidence["highest_dma_channel_candidate"]):
-        failures.append("too few DMA channels for the USART2 DMA register usage")
+        resource_failures.append("too few DMA channels for the USART2 DMA register usage")
 
+    failures = list(resource_failures)
+    if package_mismatch:
+        failures.append("published standard package differs from user-confirmed QFN64")
     return {
         "part": spec["part"],
-        "status": "excluded_by_original_evidence" if failures else "not_excluded_not_identified",
+        "status": "published_standard_part_mismatch" if failures else "not_excluded_not_identified",
+        "resource_status": "published_resource_mismatch" if resource_failures else "resource_compatible_not_identified",
+        "package_status": ("published_package_mismatch" if package_mismatch
+                           else "published_package_match_not_mcu_identification"),
+        "resource_failures": resource_failures,
         "failures": failures,
         "official_spec": spec,
     }
@@ -119,8 +160,28 @@ def analyze(payload: bytes) -> dict:
         "independent_usart_instances": len(usarts),
         "original_code_usart_instances": sorted(usarts),
         "highest_dma_channel_candidate": 6,
-        "photo_package": OBSERVED_PACKAGE,
-        "evidence_note": "Original decoded image + photo; flash source proven by scatterload; memory and peripheral mapping conditional on Cortex-M/STM32-compatible architecture.",
+        "board_package_family": OBSERVED_PACKAGE_FAMILY,
+        "board_package_pin_count": OBSERVED_PACKAGE_PIN_COUNT,
+        "board_package_source": "user-recounted QFN package with 64 physical terminals",
+        "observed_top_marking_candidate": "XL9951Q",
+        "matching_jlcpcb_catalog_record": {
+            "part_number": "XL9951Q",
+            "jlcpcb_part_number": "C9900238147",
+            "published_package": "QFN-64_8x8",
+            "listed_body_size_mm": [8, 8],
+            "listed_manufacturer_field": "JLCPCB Assembly",
+            "manufacturer_field_is_silicon_vendor_evidence": False,
+            "flash_kib": None,
+            "ram_kib": None,
+            "cpu_core": None,
+            "source": "https://jlcpcb.com/partdetail/JLCPCBAssembly-XL9951Q/C9900238147",
+            "evidence_level": (
+                "independent catalogue confirmation of matching marking and "
+                "package, not a manufacturer datasheet or verified die identification"
+            ),
+        },
+        "previous_photo_package_inference": "LQFP64 photo classification was incorrect; QFN64 now confirmed by user",
+        "evidence_note": "Original decoded image + user-confirmed and counted QFN64 package; flash source proven by scatterload; memory and peripheral mapping conditional on Cortex-M/STM32-compatible architecture.",
     }
     if not memory["data_then_zero_contiguous"] or not memory["last_region_end_equals_initial_msp"]:
         raise ValueError("V2 scatterload RAM data no longer matches initial MSP")
@@ -129,15 +190,32 @@ def analyze(payload: bytes) -> dict:
         "evidence": evidence,
         "candidates": [compare_spec(spec, evidence) for spec in SPECS],
         "interpretation": (
-            "Elimination is possible with original firmware static evidence; "
-            "passing resource checks cannot reveal MCU manufacturer or marking."
+            "Standard part numbers are tested against the stock image assuming "
+            "the high 0x08061A54 startup source is directly mapped program Flash. "
+            "A mismatch is a published-SKU conflict, not a proof that an OEM "
+            "version or remapped flash architecture cannot execute this firmware. "
+            "The user has counted 64 terminals and confirmed the QFN package. "
+            "Earlier LQFP64 photo classification was incorrect. A QFN64 "
+            "package match would not identify the MCU model or brand."
         ),
+        "lineage_vs_hardware": {
+            "sdk_family": "AIR32F103 / MH32F103A / MH2103A compatible code signature",
+            "physical_mcu": "unidentified",
+            "important_conflict": (
+                "Published AIR32F103RPT6 and MH2103ARPT6 are both "
+                "LQFP64 / 256KiB flash, conflicting with the confirmed QFN "
+                "package family and the high Flash address. Higher capacity "
+                "standard MH2103A packages in the checked catalog are LQFP, "
+                "which contradicts the user-confirmed QFN64 physical package."
+            ),
+        },
         "unresolved": [
             "Actual CPUID, AT32 DEBUG_IDCODE PID, project model byte, and Flash size ID",
             "Whether AIR32-compatible SDK code runs on higher-Flash, differently marked silicon",
             "Compatibility of PLL extended bit interpretation with vendor CRM_CFG",
-            "Whether the XL99?1Q top marking is a custom code and its real vendor",
+            "XL9951Q matches JLCPCB catalogue C9900238147 QFN-64_8x8, but die vendor and actual specifications remain unpublished",
             "Actual physical Flash and SRAM boundaries, board wiring and revision",
+            "Whether ROM, alias mapping or external NOR contributes to the high Flash-readable window",
         ],
     }
 
