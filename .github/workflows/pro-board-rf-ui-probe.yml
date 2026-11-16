@@ -17,7 +17,13 @@ jobs:
       - run: |
           python scripts/pro_board_rf_ui_probe.py > probe.log
           cat probe.log
+      - name: Cross-version OEM board-I/O evidence regression
+        run: |
+          python tools/pro_v2_board_io_audit.py
+          python tools/pro_v2_board_io_audit.py --json > pro-v2-board-io-evidence.json
       - uses: actions/upload-artifact@v4
         with:
           name: pro-board-rf-ui-probe
-          path: probe.log
+          path: |
+            probe.log
+            pro-v2-board-io-evidence.json
