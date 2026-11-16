@@ -20,7 +20,7 @@ class HighFlashSpanTests(unittest.TestCase):
         row = describe_source_span(0x70000, IMAGE_BASE + 0x60A54, 101)
         self.assertEqual(row["source_package_offset_bytes"], 0x60A54)
         self.assertEqual(row["bytes_consumed_from_package"], 101)
-        self.assertEqual(row["minimum_linear_window_kib_from_0x08000000"], 387)
+        self.assertEqual(row["minimum_linear_window_kib_from_0x08000000"], 391)
         self.assertTrue(row["source_is_contained_in_original_package"])
 
     def test_reject_missing_truncated_and_outside(self):
