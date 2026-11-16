@@ -63,6 +63,30 @@ SPECS = (
         "source": "https://c.vue2.cn/attachment/20220605164850945_AIR32F103芯片数据手册1.0.0.pdf",
     },
     {
+        "part": "AIR32F103VET6",
+        "flash_kib": 512, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP100",
+        "source": "https://wiki.luatos.com/chips/air32f103/switchFromSxx.html",
+    },
+    {
+        "part": "MH2103ARPT6",
+        "flash_kib": 256, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP64",
+        "source": "https://www.megahuntmicro.com/article/40/24.html",
+    },
+    {
+        "part": "MH2103AVET6",
+        "flash_kib": 512, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP100",
+        "source": "https://www.megahuntmicro.com/article/40/24.html",
+    },
+    {
+        "part": "MH2103AVGT6",
+        "flash_kib": 1024, "ram_kib": 96, "usarts": 5,
+        "dma_channels": None, "package": "LQFP100",
+        "source": "https://www.megahuntmicro.com/article/40/24.html",
+    },
+    {
         "part": "GD32F303RET6",
         "flash_kib": 512, "ram_kib": 64, "usarts": 3,
         "dma_channels": None, "package": "LQFP64",
@@ -129,15 +153,28 @@ def analyze(payload: bytes) -> dict:
         "evidence": evidence,
         "candidates": [compare_spec(spec, evidence) for spec in SPECS],
         "interpretation": (
-            "Elimination is possible with original firmware static evidence; "
-            "passing resource checks cannot reveal MCU manufacturer or marking."
+            "Standard part numbers are tested against the stock image assuming "
+            "the high 0x08061A54 startup source is directly mapped program Flash. "
+            "A mismatch is a published-SKU conflict, not a proof that an OEM "
+            "version or remapped flash architecture cannot execute this firmware. "
+            "Passing resource checks does not reveal the silicon manufacturer."
         ),
+        "lineage_vs_hardware": {
+            "sdk_family": "AIR32F103 / MH32F103A / MH2103A compatible code signature",
+            "physical_mcu": "unidentified",
+            "important_conflict": (
+                "Published AIR32F103RPT6 and MH2103ARPT6 are both "
+                "LQFP64 / 256KiB flash; the MH2103A family does have "
+                "512KiB/1024KiB SKUs but published V/Z packages are not LQFP64."
+            ),
+        },
         "unresolved": [
             "Actual CPUID, AT32 DEBUG_IDCODE PID, project model byte, and Flash size ID",
             "Whether AIR32-compatible SDK code runs on higher-Flash, differently marked silicon",
             "Compatibility of PLL extended bit interpretation with vendor CRM_CFG",
             "Whether the XL99?1Q top marking is a custom code and its real vendor",
             "Actual physical Flash and SRAM boundaries, board wiring and revision",
+            "Whether ROM, alias mapping or external NOR contributes to the high Flash-readable window",
         ],
     }
 
