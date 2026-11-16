@@ -99,7 +99,7 @@ class ProBoardOriginalCodeTests(unittest.TestCase):
 
     def test_spi2_data_gpio_literal_mutation_detected(self):
         with self.assertRaises(ValueError):
-            verify_version(self.corrupt(self.v2, 0x08007580), "v2")
+            verify_version(self.corrupt(self.v2, 0x08007588), "v2")
 
     def test_lcd_buffer_literal_mutation_detected(self):
         with self.assertRaises(ValueError):
