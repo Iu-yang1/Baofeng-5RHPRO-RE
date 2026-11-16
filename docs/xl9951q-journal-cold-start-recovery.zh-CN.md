@@ -88,4 +88,4 @@ python -m unittest discover -s tests -v
 
 审计器在 V1/V2 各验证 **38 处**具体 Thumb 指令及相关的原始 `BL` 调用点，检查 PC 相对文字池引用、空日志哨兵、完成标志、比较循环、擦写封装调用和完成标志写入。回归测试对两版原始程序作正例、修改关键指令/BL/Flash 常量的负例，并用纯分支模型覆盖空记录、已完成、目标一致及目标不一致的分支。
 
-**尚未证实：** 复位向量到初始化函数的完整可达性、Bootloader 实际分区、XL9951Q 晶圆厂和内部 Flash 物理页规格、GT25Q16A 实际物理连接及端到端断电恢复的可靠性。
+**后续研究进展：** [Reset 到恢复函数的静态 CFG 及 NOR 错误传播审计](xl9951q-reset-nor-error-propagation.zh-CN.md) 已将正常前置调用返回条件下的 Reset → scatterload → main → 恢复 BL 路径与 NOR WIP 状态轮询相连；仍未实机确认每次启动一定执行。\n\n**尚未证实：** 不满足正常前置调用返回条件时的所有启动路径、Bootloader 实际分区、XL9951Q 晶圆厂和内部 Flash 物理页规格、GT25Q16A 实际物理连接及端到端断电恢复的可靠性。
