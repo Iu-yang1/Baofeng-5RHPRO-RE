@@ -13,6 +13,7 @@ from pathlib import Path
 
 from mcu_fingerprint import decoded_payload
 from thumb_window import inspect_window
+from thumb_callsites import find_calls
 from xl9951q_journal_recovery_audit import STOCK, verify_recovery
 from xl9951q_reset_nor_error_audit import audit_one as verify_reset_nor
 
@@ -84,6 +85,9 @@ SITES = {
         "spi_entry": 0x080257A0,
         "spi_end": 0x080257EC,
         "status_entry": 0x080030C8,
+        "status_end": 0x080030F0,
+        "watchdog_reload_helper": 0x0800388C,
+        "watchdog_reload_callers": (0x0800AB68, 0x0800E07A),
         "watchdog_entry": 0x0800AB40,
         "watchdog_setup_call": 0x080130A6,
         "watchdog_feed_elsewhere": 0x0800E07A,
@@ -150,6 +154,9 @@ SITES = {
         "spi_entry": 0x08031814,
         "spi_end": 0x08031860,
         "status_entry": 0x08006BD8,
+        "status_end": 0x08006C00,
+        "watchdog_reload_helper": 0x0800739C,
+        "watchdog_reload_callers": (0x080103F4, 0x08013C36),
         "watchdog_entry": 0x080103CC,
         "watchdog_setup_call": 0x080193EE,
         "watchdog_feed_elsewhere": 0x08013C36,
@@ -175,6 +182,35 @@ def check_sites(payload: bytes, edition: str) -> dict:
     return counts
 
 
+
+def check_callers(payload: bytes, edition: str) -> dict:
+    info = SITES[edition]
+    lookup = find_calls(
+        payload, [info["spi_entry"], info["watchdog_reload_helper"]]
+    )
+    spi = lookup[f"0x{info['spi_entry']:08X}"]
+    wdt = lookup[f"0x{info['watchdog_reload_helper']:08X}"]
+    expected_wdt = [f"0x{x:08X}" for x in info["watchdog_reload_callers"]]
+    actual_wdt = sorted(r["call_pc"] for r in wdt)
+    if actual_wdt != sorted(expected_wdt):
+        raise ValueError(f"{edition}: watchdog reload caller list changed: {actual_wdt}")
+    if len(spi) != 26:
+        raise ValueError(f"{edition}: SPI byte exchange call inventory changed: {len(spi)}")
+
+    nor = inspect_window(payload, info["status_entry"], info["status_end"])
+    status_bls = [r["pc"] for r in nor if r["mnemonic"] == "bl"]
+    expected_spi_status = [
+        f"0x{row[0]:08X}" for row in info["status"] if row[1] == "bl"
+    ]
+    if status_bls != expected_spi_status:
+        raise ValueError(f"{edition}: NOR RDSR calls unexpected target code")
+    return {
+        "spi_byte_exchange_direct_calls_in_stock": len(spi),
+        "watchdog_reload_direct_calls": actual_wdt,
+        "rdsr_only_calls_spi_byte_exchange": True,
+    }
+
+
 def rdsr_outcome(status_byte: int, transfer_timed_out: bool = False) -> dict:
     """Apply observed RDSR bit0 branch to a single byte exchange result."""
     if not 0 <= status_byte <= 255:
@@ -190,6 +226,7 @@ def rdsr_outcome(status_byte: int, transfer_timed_out: bool = False) -> dict:
 
 def analyze_one(payload: bytes, edition: str) -> dict:
     site_counts = check_sites(payload, edition)
+    callers = check_callers(payload, edition)
     reset = verify_reset_nor(payload, edition)
     journal = verify_recovery(payload, edition)
     info = SITES[edition]
@@ -236,6 +273,7 @@ def analyze_one(payload: bytes, edition: str) -> dict:
         },
         "additional_watchdog_feed_site": f"0x{info['watchdog_feed_elsewhere']:08X}",
         "verified_sites": site_counts,
+        "call_inventory": callers,
         "limitations": [
             "Startup path assumes successful return from earlier functions, not observed hardware boot.",
             "IWDG write sequence is proven, not actual LSI frequency, timeout seconds, option bytes or reset result.",
