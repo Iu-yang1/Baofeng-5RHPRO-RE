@@ -16,6 +16,7 @@ from pathlib import Path
 from mcu_fingerprint import decoded_payload
 from thumb_callsites import find_calls
 from v2_bootrom_dispatch import analyze as verify_rom_helper
+from v2_air32_sdk_fingerprint import ROM_HELPER_LITERALS, literal
 from v2_pll_runtime_order import V1, V2, verify_reset_to_main
 from v2_scatterload_decode import inspect_tables
 from v2_scatterload_regions import inspect as inspect_regions
@@ -69,6 +70,13 @@ def _rom_bl_sites(payload: bytes, edition: str) -> list[str]:
 def analyze(v2: bytes, v1: bytes | None = None) -> dict:
     stage = verify_reset_to_main(v2, V2, True)
     helper = verify_rom_helper(v2, v1)
+    # The instruction audit does not check every word in the helper literal
+    # pool; validate the ten AIR32 SDK-specific MMIO/ROM/UID pointers as well.
+    for pc, expected in ROM_HELPER_LITERALS.items():
+        if literal(v2, pc) != expected:
+            raise ValueError(
+                f"original AIR32-style helper literal changed at 0x{pc:08X}"
+            )
     all_regions = inspect_regions(v2)
     data = inspect_tables(v2)
     if data["source_address"] != "0x08061A54":
