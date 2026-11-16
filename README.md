@@ -57,6 +57,22 @@ silicon origin and commercial die type **remain unknown**. The six stock
 AIR32-style ROM helpers establish **software lineage, not chip branding**.
 [Detailed catalogue evidence (中文)](docs/uv5rhpro-six-stock-mcu-lineage.zh-CN.md).
 
+### Offline Flash-driver and upgrade-protocol evidence (V1/V2)
+
+A [new stock-binary and host-updater audit](docs/xl9951q-flash-updater-protocol.zh-CN.md)
+confirms **220 byte-identical bytes** of Flash erase/program/unlock routines
+in both V1/V2 application images and direct callers referencing
+`0x0807F800`. V2 application code also uses a 4096-byte data unit, which
+**does not prove** the physical Flash erase-page size.
+
+The `fw_updater.py` host sends 1024-byte data blocks with relative addresses,
+and its 512 KiB constant is a host-side bound, **not measured silicon Flash
+capacity**. The 0x08000000–0x08000FFF bootloader/ROM remains unobserved.
+
+```sh
+python tools/xl9951q_flash_paths_audit.py --json
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**

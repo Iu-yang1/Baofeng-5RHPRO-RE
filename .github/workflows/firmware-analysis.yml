@@ -27,9 +27,15 @@ jobs:
         run: |
           python tools/firmware_inspect.py --strict firmware/*.dat
           python tools/firmware_inspect.py --strict --json firmware/*.dat > firmware-inventory.json
+      - name: Audit stock Flash code and updater without device access
+        run: |
+          python tools/xl9951q_flash_paths_audit.py
+          python tools/xl9951q_flash_paths_audit.py --json > xl9951q-flash-updater-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
           name: firmware-inventory
-          path: firmware-inventory.json
+          path: |
+            firmware-inventory.json
+            xl9951q-flash-updater-evidence.json
           if-no-files-found: error
