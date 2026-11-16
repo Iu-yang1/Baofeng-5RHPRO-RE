@@ -35,7 +35,7 @@ class HighFlashNorAuditTests(unittest.TestCase):
 
     def test_v1_spare_sector_literal_mutation_fails(self):
         raw = bytearray(self.v1)
-        address = 0x08012DD0 - 0x08001000
+        address = 0x08012DCE - 0x08001000
         raw[address] ^= 0xFF
         with self.assertRaises(ValueError):
             verify_one(bytes(raw), "v1")
