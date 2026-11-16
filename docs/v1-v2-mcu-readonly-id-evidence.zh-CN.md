@@ -28,7 +28,7 @@
 
 参见 [合宙官方迁移指南](https://wiki.luatos.com/chips/air32f103/switchFromSxx.html)、[AIR32F103 用户手册](https://c.vue2.cn/attachment/20230907152950811_Air32F103xx_User_Manual_CN-%E5%B8%A6%E7%9B%AE%E5%BD%95%E4%B9%A6%E7%AD%BE.pdf)。
 
-### AT32F403A / AT32F407 典型 PID（均为 LQFP64）
+### AT32F403A / AT32F407 典型 PID（这些具体标准料号均为 LQFP64，**与实机 QFN64 不匹配**）
 
 | DEBUG_IDCODE | Project ID | 型号 | 公开 Flash |
 | --- | --- | --- | --- |
