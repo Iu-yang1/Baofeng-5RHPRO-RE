@@ -71,10 +71,13 @@ def assess(payload: bytes, reference: bytes) -> dict:
         "helper_matching_bytes_vs_v2_0_9": matches,
         "helper_exactly_same_as_v2_0_9": window == ref,
         "aligned_literal_counts": magic_counts,
-        "all_special_magic_literal_words_present": all(
-            magic_counts[f"0x{value:08X}"] > 0
-            for value in LITERALS
+        "aligned_magic_constant_words_present": sum(
+            magic_counts[f"0x{value:08X}"] > 0 for value in LITERALS
         ),
+        "nonliteral_or_unreferenced_constant_words": [
+            f"0x{value:08X}" for value in LITERALS
+            if magic_counts[f"0x{value:08X}"] == 0
+        ],
         "interpretation": (
             "Matching the official AIR32 SDK-style constants and helper "
             "supports code lineage, not live chip identification. "
@@ -95,7 +98,8 @@ def analyze(images: dict[str, bytes]) -> dict:
         "limits": [
             "No physical registers, actual UID, CPUID or MCU PID were read.",
             "Matching boot-ROM helper bytes identify firmware lineage, not silicon supplier.",
-            "Aligned word presence is a weak clue; code-referenced behavior is separately verified in V1.1.04/V2.0.09.",
+            "Aligned word presence is a weak clue; a missing literal may be encoded as an immediate or an offset rather than absent from code.",
+            "Code-referenced behavior is separately verified in V1.1.04/V2.0.09.",
             "No chip Flash/SRAM or OEM custom marking is inferred from the SDK signature.",
         ],
     }
@@ -118,7 +122,9 @@ def main(argv: list[str] | None = None) -> int:
             print(name, "payload", row["decoded_payload_bytes"],
                   "helper bytes matching", row["helper_matching_bytes_vs_v2_0_9"],
                   "of", row["helper_window_bytes"],
-                  "magic", row["all_special_magic_literal_words_present"])
+                  "aligned magic words",
+                  row["aligned_magic_constant_words_present"],
+                  "of", len(LITERALS))
             print("  key counts:", row["aligned_literal_counts"])
     return 0
 
