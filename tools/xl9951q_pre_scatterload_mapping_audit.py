@@ -100,24 +100,24 @@ def _audit_v2(v2: bytes, v1: bytes | None) -> tuple[dict, dict]:
     ).hexdigest()
     v2_callers = _rom_bl_sites(v2, "v2")
     return {
-            "reset_to_main": stage,
-            "scatterload_source": source,
-            "scatterload_region_count": len(all_regions["descriptors"]),
-            "sram_restore": {
-                "size_bytes": data["region_size"],
-                "compressed_bytes_available": data["compressed_bytes_available"],
-                "compressed_bytes_consumed": consumed,
-                "unused_trailing_source_bytes": data["unused_trailing_source_bytes"],
-                "decompressed_sha256": data["decompressed_sha256"],
-            },
-            "rom_helper_bl_sites": v2_callers,
-            "air32_sdk_qspi_control_sites": {
-                "helper_entry": f"0x{ROM_HELPER:08X}",
-                "unlock_store_pc": f"0x{QSPI_UNLOCK_SITE:08X}",
-                "restore_store_pc": f"0x{QSPI_RELOCK_SITE:08X}",
-                "control_mmio": "0x4002228C",
-                "sdk_name": "QSPI unlock / restore; not evidence of GT25Q16A XIP",
-            },
+        "reset_to_main": stage,
+        "scatterload_source": source,
+        "scatterload_region_count": len(all_regions["descriptors"]),
+        "sram_restore": {
+            "size_bytes": data["region_size"],
+            "compressed_bytes_available": data["compressed_bytes_available"],
+            "compressed_bytes_consumed": consumed,
+            "unused_trailing_source_bytes": data["unused_trailing_source_bytes"],
+            "decompressed_sha256": data["decompressed_sha256"],
+        },
+        "rom_helper_bl_sites": v2_callers,
+        "air32_sdk_qspi_control_sites": {
+            "helper_entry": f"0x{ROM_HELPER:08X}",
+            "unlock_store_pc": f"0x{QSPI_UNLOCK_SITE:08X}",
+            "restore_store_pc": f"0x{QSPI_RELOCK_SITE:08X}",
+            "control_mmio": "0x4002228C",
+            "sdk_name": "QSPI unlock / restore; not evidence of GT25Q16A XIP",
+        },
     }, helper
 
 
