@@ -6,6 +6,23 @@ Original reverse-engineering archive: https://github.com/kholdfuzion/Baofeng-5RH
 
 > **Hardware correction (2026-11-16): the UV-5RH Pro MCU package is QFN-64, as confirmed by the user.** Earlier photo-based LQFP64 identification and any LQFP64 pin-number guidance are retracted. Published LQFP64 parts in the comparative table are **not** package matches for this radio. MCU vendor and SKU remain unknown; firmware-only analysis continues.
 
+### Pre-scatterload FLASH_ACR configuration confirmed (V1/V2)
+
+Further [V1/V2 Reset-stage Flash ACR instruction analysis](docs/xl9951q-pre-scatterload-flash-acr.zh-CN.md)
+verifies the two original stock firmware versions share **exactly the same
+168-byte early clock routine**, with PC-relative `0x40021000` RCC and
+`0x40022000` Flash controller bases. The routine updates FLASH_ACR prefetch
+and latency **before** ARM scatterload; the reset wrapper also writes VTOR
+`0xE000ED08` with `0x08000000`. These are visible Flash *timing* controls,
+not confirmed external SPI NOR XIP mapping.
+
+The later AIR32 SDK-style `0x4002228C` ROM/QSPI unlock still takes place
+after scatterload. Mask ROM / OEM bootloader mapping remains unknown.
+
+```sh
+python tools/xl9951q_pre_scatterload_flash_acr.py --json
+```
+
 ### XL9951Q startup Flash/QSPI stage-order evidence (no device access)
 
 A [new read-only V1/V2 ROM and scatterload sequencing audit](docs/xl9951q-boot-high-flash-vs-qspi-audit.zh-CN.md)

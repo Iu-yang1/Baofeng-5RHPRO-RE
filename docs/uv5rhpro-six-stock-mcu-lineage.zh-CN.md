@@ -122,6 +122,10 @@ GT25Q16A 2 MiB SPI NOR 已由照片独立确认，但**没有证据证明将其�
 
 新增 [XL9951Q：scatterload 与 QSPI 解锁的启动顺序核对](xl9951q-boot-high-flash-vs-qspi-audit.zh-CN.md)，对 V2 原厂 **`0x08061A54` 压缩 SRAM 数据源**进行真实解压内容、原厂升级包覆盖区间和 Reset→scatterload→main→PLL/ROM helper 调用点交叉验证。数据显示 7084 字节 SRAM 初始化段来自原厂应用升级包内的压缩数据；**应用主入口的 `0x4002228C` QSPI 解锁晚于 scatterload**，所以不能解释其发生前就已能访问的高 Flash 地址。启动器及掩膜 ROM 是否另外建立映射仍未知；并未排除片外 NOR 的其他用途或读写方式。
 
+## 新增：V1/V2 Reset 前 Flash ACR 配置的指令级鉴定
+
+[完整研究报告](xl9951q-pre-scatterload-flash-acr.zh-CN.md) 进一步在原厂 V1.1.04 / V2.0.09 上确认：Reset 阶段确实配置了 `0x40022000` 的 FLASH_ACR（预取和访问延时），且两版早期时钟函数完整 168 B 相同。它不能证明外部 NOR XIP 映射；与应用阶段晚于 scatterload 的 `0x4002228C` QSPI 解锁应分别处理。Flash 连续可读窗口仍须覆盖上轮验证的 `0x08062AEA`（395 KiB）；真实芯片 Flash 容量和设计来源仍未知。
+
 ## 复现及可继续解决的问题
 
 \`\`\`sh
