@@ -143,3 +143,10 @@ cargo check --manifest-path firmware-pro/core/Cargo.toml --lib --offline
 - [ST RM0008：STM32F10x 中断、USART、DMA 与外设地址候选手册](https://www.st.com/resource/en/reference_manual/rm0008-stm32f101xx-stm32f102xx-stm32f103xx-stm32f105xx-and-stm32f107xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)。STM32 兼容结构只是**验证用参照**，不是确认实际主控型号。
 
 结论：**以“原厂 firmware reverse engineering → 高可信接口合同 → host 验证 no_std 业务模块 → MCU/板级 HAL → 可启动与 RF 验证”的顺序最节省返工。** 不建议在 MCU 未确认前直接照搬普通版固件重新刷机。
+
+
+## 2026-11-17 原厂 RF/UI 软件板级证据更新
+
+[交叉验证的 V1/V2 FD6818、RDA5807M、键盘和 SPI2 屏幕报告](pro-v2-board-rf-ui-static-audit.zh-CN.md) 已建立高于前期单纯硬件猜测的原厂指令依据：FD6818 两线寄存器传输使用 `0xE2/0xE3`、PA14/PC15 软件接口、`0x39/0x38` 双寄存器调谐字；广播 FM 使用 `0x22/0x23`、PC14/PA11；键盘由 GPIOC 两阶段扫描与 22 项解压 SRAM 查找表匹配。SPI2 LCD 同时完成了 `0x3A=0x05` RGB565、160×128 像素清屏循环、40,960 B RAM 帧缓冲和 `0x2A/0x2B/0x2C` 窗口刷新指令的静态闭环。
+
+已对应实现独立 `firmware-pro/core` 的键码、两线寄存器、LCD RGB565 和软件板级引脚契约，均提供 Host 测试。**未解决的工程事实**仍是 QFN64 实际焊盘/MCU 型号、FD6818 原始频率字和 Hz 转换、PA 及模拟校准、LCD 具体芯片及初始化偏移/方向、实际键面对应与完整菜单、Bootloader 失败恢复。故此不能将当前代码标为已经完成可刷写的完整 RF/UI HAL。

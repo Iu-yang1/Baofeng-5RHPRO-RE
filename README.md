@@ -156,6 +156,34 @@ NOR physical operation, or power-loss robustness.
 python tools/xl9951q_spi_wdt_integrity_audit.py --json
 ```
 
+### UV-5RH Pro RF, keypad and SPI2 panel: stock-source grounded contracts
+
+[New cross-version V1/V2 RF/UI reverse-engineering report (中文)](docs/pro-v2-board-rf-ui-static-audit.zh-CN.md)
+verifies the original 22-key input table from decompressed stock V2 SRAM,
+the matching V1/V2 GPIOC two-phase matrix scanner, separate bit-banged
+two-wire interfaces for **FD6818 at I2C 0x71** and **RDA5807M at 0x11**,
+and the original FD6818 16-bit register/32-bit raw tuning-word ordering.
+
+The OEM V2 **SPI2 LCD** uses separate command/data wrappers with
+PB12/PA12 candidate control signals, the ST7735-compatible
+`0x11/0x36/0x3A=0x05/0x2A/0x2B/0x2C` instruction family,
+and a directly verified **160×128 RGB565 / 320 B row-stride** framebuffer
+at `0x20004B76`. These are software-MMIO facts, **not** measured
+physical QFN64 pads or a confirmed panel manufacturer/model.
+
+Independent MCU-neutral Rust `no_std` implementations live in
+[firmware-pro/core](firmware-pro/core): keypad code matching, FD6818
+raw I2C word access, FM radio indexed-register access, LCD framebuffer
+and scanout, and a separated source-grounded V2 pin contract. The complete
+TX/PA, LCD hardware initialization, keyboard labels and board boot
+requirements are still under reverse engineering. **No flashable
+firmware or complete board HAL is claimed.**
+
+```sh
+python tools/pro_v2_board_io_audit.py --json
+cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
