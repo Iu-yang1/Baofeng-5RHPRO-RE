@@ -94,6 +94,27 @@ python tools/upgrade_tool_il_audit.py --verify
 python tools/xl9951q_high_flash_nor_audit.py --json
 ```
 
+### XL9951Q cold-start application journal recovery (V1/V2)
+
+The [new two-version cold-start journal recovery study (中文)](docs/xl9951q-journal-cold-start-recovery.zh-CN.md)
+confirms actual early-initialization calls into a backup recovery routine:
+V1 `0x08027BFC` → `0x0800AB74`; V2 `0x080340F4` →
+`0x08010400`. The routine reads an 8-byte MCU Flash transaction
+record at `0x0807F800` (little-endian NOR sector address, then
+completion byte), compares an external NOR backup at `0x001FE000`
+with the target in 64-byte chunks, and when different restores the
+complete 4 KiB NOR sector before clearing the journal.
+
+**This confirms software recovery logic, not power-loss reliability.**
+The journal-clear call directly follows the NOR restore call, without
+an independent success check in the recovery function; there is no
+backup CRC in this routine. No hardware operation or firmware flashing
+was conducted.
+
+```sh
+python tools/xl9951q_journal_recovery_audit.py --json
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**

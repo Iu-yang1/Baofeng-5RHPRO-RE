@@ -42,7 +42,7 @@ V1 入口 `0x08012D98`，V2 入口 `0x080190E0`，均存在以下调用顺序：
 5. 再从目标 SPI NOR 扇区读入缓冲区，必要时对目标扇区调用 `0x20` 擦除；把修改后的数据按 4096 B 单元写回目标 NOR 地址；
 6. 结束时将 `0x00000001` 写向 `0x0807F804`。
 
-这是**备份数据扇区 + MCU Flash 元数据标志**的结构，说明软件显式区分 MCU Flash 与外部 NOR。由于未定位和证明掉电重启时的完整恢复分支，不能声称实现了可靠原子事务、事务回滚或断电恢复。尤其是 SPI NOR `0x20` 命令指示的 4096 B 擦除粒度，**不可转用为 XL9951Q 片内 Flash 的物理页大小**。
+这是**备份数据扇区 + MCU Flash 元数据标志**的结构，说明软件显式区分 MCU Flash 与外部 NOR。更新：后续研究已经在 V1/V2 应用中定位并核对早期初始化期间的恢复调用、4096 B 备份比较与恢复分支，详见[后续恢复状态机取证](xl9951q-journal-cold-start-recovery.zh-CN.md)。尽管软件恢复分支确实存在，仍不能据此声称已经实机验证可靠原子事务、事务回滚或断电容错。尤其是 SPI NOR `0x20` 命令指示的 4096 B 擦除粒度，**不可转用为 XL9951Q 片内 Flash 的物理页大小**。
 
 在一个标称 2 MiB 的 SPI NOR 中，`0x001FE000` 是倒数第二个 4 KiB 扇区的起点，`0x001FF000` 后一个扇区的用途仍未证实。不能把 2 MiB 顶部 8 KiB 全部宣称为已确认的固件分区。
 
@@ -85,6 +85,6 @@ python -m unittest discover -s tests -v
 
 前两者依次验证 V1/V2 Thumb SPI NOR 读写擦指令、内部 Flash 日志点和高地址调用顺序，以及 Release UpgradeTool 中实际 MethodDef IL 的原始方法结构和协议构造。测试包含恶意变异的指令、文字池、方法体和块长负例；CI 只上传证据 JSON，不发布固件镜像。
 
-依然未解决：XL9951Q 的晶圆厂与 die、片内 Flash 真实容量、片内擦除页大小、Bootloader 的相对地址转换、完整 SPI NOR 分区表、重启恢复状态机。这些项目仍应分别标为 **UNCONFIRMED**。
+依然未解决：XL9951Q 的晶圆厂与 die、片内 Flash 真实容量、片内擦除页大小、Bootloader 的相对地址转换、完整 SPI NOR 分区表、恢复例程的全部故障分支及实际掉电可靠性。**应用层恢复状态机已由后续静态审计证实，但实机恢复效果仍为 UNCONFIRMED。**
 
 参考：ST [RM0008](https://www.st.com/resource/en/reference_manual/cd00171190.pdf) 用于 STM32F1 兼容寄存器地址**对照**；不得将 ST 手册当成 XL9951Q 原厂规格。Mandiant [dncil](https://github.com/mandiant/dncil) / [dnfile](https://github.com/malwarefrank/dnfile) 为本次离线 .NET IL 解析工具。 

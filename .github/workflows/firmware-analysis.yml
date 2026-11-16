@@ -36,6 +36,10 @@ jobs:
         run: |
           python tools/upgrade_tool_il_audit.py --verify > xl9951q-upgrade-tool-il-verified.json
           python tools/xl9951q_high_flash_nor_audit.py --json > xl9951q-high-flash-nor-verified.json
+      - name: Audit V1/V2 early-init journal recovery path
+        run: |
+          python -m py_compile scripts/xl9951q_journal_recovery_discovery.py
+          python tools/xl9951q_journal_recovery_audit.py --json > xl9951q-journal-recovery-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -45,4 +49,5 @@ jobs:
             xl9951q-flash-updater-evidence.json
             xl9951q-upgrade-tool-il-verified.json
             xl9951q-high-flash-nor-verified.json
+            xl9951q-journal-recovery-evidence.json
           if-no-files-found: error
