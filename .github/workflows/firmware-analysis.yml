@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install offline analysis test dependencies
-        run: python -m pip install "capstone==5.0.6"
+        run: python -m pip install "capstone==5.0.6" "dnfile==0.18.0" "dncil==1.0.2"
       - name: Run read-only unit tests
         run: python -m unittest discover -s tests -v
       - name: Inspect all stock firmware images
@@ -32,6 +32,10 @@ jobs:
         run: |
           python tools/xl9951q_flash_paths_audit.py
           python tools/xl9951q_flash_paths_audit.py --json > xl9951q-flash-updater-evidence.json
+      - name: Audit actual UpgradeTool IL and original high Flash NOR calls
+        run: |
+          python tools/upgrade_tool_il_audit.py --verify > xl9951q-upgrade-tool-il-verified.json
+          python tools/xl9951q_high_flash_nor_audit.py --json > xl9951q-high-flash-nor-verified.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -39,4 +43,6 @@ jobs:
           path: |
             firmware-inventory.json
             xl9951q-flash-updater-evidence.json
+            xl9951q-upgrade-tool-il-verified.json
+            xl9951q-high-flash-nor-verified.json
           if-no-files-found: error

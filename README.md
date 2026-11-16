@@ -73,6 +73,27 @@ capacity**. The 0x08000000–0x08000FFF bootloader/ROM remains unobserved.
 python tools/xl9951q_flash_paths_audit.py --json
 ```
 
+### XL9951Q OEM UpgradeTool IL and external SPI NOR journal chain (read-only)
+
+[New evidence report (中文)](docs/xl9951q-upgradetool-il-spi-nor-journal.zh-CN.md)
+and offline audits validate the OEM Release `Radio.exe` managed IL directly:
+the `DoReadData` method is an empty one-byte `ret`, while `DoWriteData`
+uses `DOWNLOAD`, an opaque 16-byte `F-ERASE` frame, 1024-byte
+relative-offset chunks and a final ACK without whole-image readback.
+No firmware-backup implementation is demonstrated by this updater.
+
+V1 and V2 application code separately send external NOR `0x03` read,
+`0x02` program, `0x20` sector erase, `0x05` status and `0x06`
+write-enable commands, using `0x001FE000` as a NOR staging offset
+and `0x0807F800` as an internal-Flash metadata/journal candidate.
+This does **not** identify the XL9951Q silicon or establish bootloader
+mapping, physical MCU erase geometry, XIP or recovery correctness.
+
+```sh
+python tools/upgrade_tool_il_audit.py --verify
+python tools/xl9951q_high_flash_nor_audit.py --json
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**

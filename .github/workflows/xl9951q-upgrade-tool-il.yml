@@ -1,8 +1,5 @@
-name: XL9951Q archived UpgradeTool IL reconnaissance
+name: XL9951Q UpgradeTool IL and SPI NOR forensic analysis
 on:
-  push:
-    branches:
-      - research/xl9951q-high-flash-il-cfg
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,7 +12,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install offline .NET IL parser
-        run: python -m pip install dnfile dncil 'capstone==5.0.6'
+        run: python -m pip install 'dnfile==0.18.0' 'dncil==1.0.2' 'capstone==5.0.6'
       - name: Parse archived vendor .NET IL statically
         run: |
           python tools/upgrade_tool_il_audit.py > xl9951q-upgrade-tool-il-overview.txt
@@ -24,7 +21,6 @@ jobs:
           python tools/xl9951q_high_flash_nor_audit.py --json > xl9951q-high-flash-nor-verified.json
           cat xl9951q-upgrade-tool-il-verified.json
           cat xl9951q-high-flash-nor-verified.json
-          cat xl9951q-upgrade-tool-il-overview.txt
       - name: Read-only disassembly of application high Flash callers
         run: |
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800D2D0 --end 0x0800D344 > xl9951q-v2-high-address-callers.txt
@@ -40,11 +36,6 @@ jobs:
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08007C80 --end 0x08007D10 >> xl9951q-v1-nor-helpers.txt
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08010620 --end 0x08010828 > xl9951q-v2-journal-recovery-context.txt
           python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x080190E0 --target 0x0800D304 --target 0x0800D334 --target 0x08006AA8 >> xl9951q-v2-journal-recovery-context.txt
-          cat xl9951q-v2-journal-recovery-context.txt
-          cat xl9951q-v2-nor-helpers.txt
-          cat xl9951q-v1-nor-helpers.txt
-          cat xl9951q-v2-high-address-callers.txt
-          cat xl9951q-v1-high-address-callers.txt
       - uses: actions/upload-artifact@v4
         with:
           name: xl9951q-upgrade-tool-il-metadata
