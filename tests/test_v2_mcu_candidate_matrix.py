@@ -67,6 +67,26 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
         self.assertEqual(r["core_by_cpuid"], "Cortex-M3")
         self.assertIsNone(r["match_in_official_pid_table"])
 
+    def test_published_mega_hunt_skusk_vs_64pin_high_flash_image(self):
+        by_part = {row["part"]: row for row in self.report["candidates"]}
+        for part, reason in (
+            ("MH2103ARPT6", "Flash"),
+            ("MH2103AVET6", "package"),
+            ("MH2103AVGT6", "package"),
+            ("AIR32F103VET6", "package"),
+        ):
+            with self.subTest(part=part):
+                row = by_part[part]
+                self.assertEqual(row["status"], "excluded_by_original_evidence")
+                self.assertEqual(len(row["failures"]), 1)
+                self.assertIn(reason, row["failures"][0])
+        self.assertIn(
+            "physical_mcu", self.report["lineage_vs_hardware"]
+        )
+        self.assertIn(
+            "published-SKU conflict", self.report["interpretation"]
+        )
+
     def test_source_range_comparison(self):
         m = {
             "part": "synthetic", "flash_kib": 256, "ram_kib": 96,
