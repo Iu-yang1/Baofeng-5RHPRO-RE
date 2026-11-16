@@ -88,6 +88,21 @@ def main():
                 for ins in inspect_window(p,st,en):
                     print("RF_UI",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
                 print("RF_UI_END",f"0x{st:08X}")
+        if version=="v2":
+            ui_targets=[0x0800752C,0x0800755C,0x0800758C,0x080074C8,0x08014CE4,
+                        0x08014D22,0x08014D38,0x08014D48,0x08014D58,
+                        0x08014D68,0x08014D76,0x08014D86,0x08014D94,0x08014DA2]
+            xrefs=find_calls(p,ui_targets)
+            for dest,sites in xrefs.items():
+                print("DISPLAY_XREF",dest,len(sites),[r["call_pc"] for r in sites][:85])
+            for start,end in [
+                (0x08007520,0x0800758A),(0x08014C9C,0x08014DCE),
+                (0x08006DE0,0x08006F04),(0x080138D0,0x08013B90)
+            ]:
+                print("DISPLAY_BEGIN",f"0x{start:08X}")
+                for ins in inspect_window(p,start,end):
+                    print("DISPLAY",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
+                print("DISPLAY_END",f"0x{start:08X}")
         verify={
           "v1":[(0x08002310,0x08002416),(0x08002470,0x080024F0),
                 (0x0800B100,0x0800B1BE)],
