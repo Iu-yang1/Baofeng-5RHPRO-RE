@@ -22,7 +22,7 @@ NOR_UNIT = 0x1000
 MAP = {
     "v1": {
         "path": "firmware/BF_5RH_501_v1_1_04.dat",
-        "journal": 0x08012D98, "erase_journal": 0x08007C64,
+        "journal": 0x08012D98, "erase_journal": 0x08007C68,
         "spi_read": 0x08002FE4, "spi_write": 0x08003118,
         "spi_erase": 0x08002F98, "spi_erase_absolute": 0x08007C94,
         "nor_status": 0x080030C8, "nor_wren": 0x080030F4,
@@ -49,7 +49,7 @@ MAP = {
     },
     "v2": {
         "path": "firmware/BF_5RH_501_v2_0_9.dat",
-        "journal": 0x080190E0, "erase_journal": 0x0800D304,
+        "journal": 0x080190E0, "erase_journal": 0x0800D308,
         "spi_read": 0x08006AF4, "spi_write": 0x08006C28,
         "spi_erase": 0x08006AA8, "spi_erase_absolute": 0x0800D334,
         "nor_status": 0x08006BD8, "nor_wren": 0x08006C04,
