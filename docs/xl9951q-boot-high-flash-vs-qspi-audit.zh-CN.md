@@ -23,6 +23,14 @@
 
 注意 `0x08061A54` 本身**不是 CPU 实际运行指令的 PC**，而是原厂启动程序的压缩数据读取来源。因此不能把它与“从这一地址执行机器码”或“必须有外部 NOR 取指”混为一谈。
 
+### 额外对照：合宙 AIR32 官方启动汇编中的 QSPI 时序
+
+从合宙开源的 [AIR32F103 GCC startup_air32f10x.s（固定提交）](https://github.com/openLuat/luatos-soc-air32f103/blob/c10eaeb13dd133f35bc9d8ed1137072897339db2/Libraries/STARTUP/gcc/startup_air32f10x.s) 可以看到：启动汇编**先**将 `.data` 从 Flash 复制到 SRAM、对 `.bss` 清零（源码第 38–67 行），**再**写三级解锁、`0x200183FF` 和 `0x4002228C=0xA5A5A5A5`（第 68–83 行），随后重新锁定（第 84–97 行），才调用 `SystemInit`（第 101–102 行）。
+
+这对“QSPI 解锁必然是在 SRAM 初始化之前启用外置 NOR”的推测构成**另一项不利证据**：公开 SDK 的启动汇编也是把这一解锁阶段安排在 SRAM 初始化**之后**，没有显示这段例程负责启动前程序映射。
+
+**边界必须分清：** 合宙的上述文件是 GCC startup 示例，UV-5RH Pro 原厂镜像使用的则是有独立区域表的 ARM scatterload（Keil/ARM 风格），不能把合宙 GCC 的所有启动指令及设备时序强行替换成电台的真实启动行为。我们用原厂固件验证的是 ROM helper 的间接调用和顺序；合宙 startup 只用来核实该魔数操作在 SDK 中的设计语境。
+
 ## 三、关于 XL9951Q 器件登记与厂家
 
 [JLCPCB XL9951Q / C9900238147](https://jlcpcb.com/partdetail/JLCPCBAssembly-XL9951Q/C9900238147) 页面给出 `MFR.Part # = XL9951Q`、`Package = QFN-64_8x8`、`Manufacturer = JLCPCB Assembly`、`Category = Others / SMT`，但没有芯片内核、Flash/SRAM、芯片原始制造商、内存映射或功能引脚定义。用户已实际清点 MCU 为 QFN-64，封装与条目匹配。**此资料能帮助确认零件目录标签，不能说明 XL9951Q 物理上采用哪一家的 die。**
