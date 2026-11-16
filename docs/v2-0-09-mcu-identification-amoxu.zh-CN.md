@@ -96,6 +96,8 @@ python tools/at32_readonly_id_decode.py --cpuid 0x410FC241 --debug-id 0x700502CE
 
 **新增外部核对：** [JLCPCB C9900238147](https://jlcpcb.com/partdetail/JLCPCBAssembly-XL9951Q/C9900238147) 明确收录 `XL9951Q` 和 `QFN-64_8x8`。目录上的 `JLCPCB Assembly` 是该元件库的制造商字段，不能据此认为芯片由嘉立创设计/制造；页面不公布芯片内核、Flash、SRAM 和晶圆厂。此记录只能增强主控顶面标记与封装的可信度，不改变软件 SDK 谱系与物理芯片厂商必须分开研究的结论。参见 [六版固件及 XL9951Q 目录证据](uv5rhpro-six-stock-mcu-lineage.zh-CN.md)。
 
+**2026-11-16 后续容量修正：** [XL9951Q 启动 Flash 边界审计](xl9951q-boot-high-flash-vs-qspi-audit.zh-CN.md) 对固件实际 scatterload 解压计算了 **4247 字节压缩源**，末端地址 **`0x08062AEA`**。因此程序在正常连续映射中至少需要 **395 KiB** 可读地址窗口，比仅按 `0x08061A54` 起点得到的约 391 KiB 更严格。本表中“512 KiB 或更大”仍是典型标准商业容量筛选，并不等于直接测得内部 Flash 大小。
+
 ## 2026-11-16 更新：六版软件指纹恒定与 MH2103A 的逐 SKU 容量核实（已按 QFN64 更正）
 
 [六版原厂 MCU 平台谱系分析](uv5rhpro-six-stock-mcu-lineage.zh-CN.md)
