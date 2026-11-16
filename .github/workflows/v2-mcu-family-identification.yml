@@ -26,6 +26,10 @@ jobs:
         run: |
           python tools/v2_mcu_candidate_matrix.py firmware/BF_5RH_501_v2_0_9.dat
           python tools/v2_mcu_candidate_matrix.py --json firmware/BF_5RH_501_v2_0_9.dat > v2-mcu-matrix.json
+      - name: Compare AIR32-style ROM helper lineage across all six stock firmwares
+        run: |
+          python tools/stock_mcu_lineage.py
+          python tools/stock_mcu_lineage.py --json > stock-six-version-mcu-lineage.json
       - name: Search firmware for debugger/flash-register identification self-checks
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
@@ -46,4 +50,5 @@ jobs:
           path: |
             v2-mcu-matrix.json
             v2-mcu-identity-xrefs.json
+            stock-six-version-mcu-lineage.json
           if-no-files-found: error
