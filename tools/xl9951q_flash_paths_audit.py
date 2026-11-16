@@ -238,7 +238,7 @@ def analyze(firmware: dict[str, bytes], updater_source: str,
     for pc, mnemonic, operand in (
         (0x080190F4, "lsr", "#0xc"),
         (0x08019102, "mov", "#0x1000"),
-        (0x08019106, "lsl", "#0xc"),
+        (0x08019106, "lsls", "#0xc"),
         (0x0801910E, "mov", "r0, r4"),
         (0x0801912C, "bl", "#0x80069f4"),
     ):
