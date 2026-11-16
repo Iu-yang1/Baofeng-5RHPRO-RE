@@ -53,6 +53,14 @@ class ActualStockMappingOrderTests(unittest.TestCase):
         self.assertEqual(data["source_package_offset_bytes"], 0x60A54)
         self.assertEqual(data["package_size_bytes"], 401408)
         self.assertTrue(data["source_is_contained_in_original_package"])
+        self.assertEqual(data["source_end_exclusive"], "0x08062AEB")
+        self.assertEqual(data["last_compressed_source_address"], "0x08062AEA")
+        self.assertEqual(data["bytes_consumed_from_package"], 4247)
+        self.assertEqual(data["minimum_linear_window_kib_from_0x08000000"], 395)
+        self.assertEqual(
+            data["compressed_source_sha256"],
+            "f49838c5786c07fe8069e7d01d9d9be1542872c38ef5f556befb83015aea036b",
+        )
         self.assertGreater(data["bytes_consumed_from_package"], 0)
         self.assertLess(
             data["source_package_offset_bytes"]+data["bytes_consumed_from_package"],
