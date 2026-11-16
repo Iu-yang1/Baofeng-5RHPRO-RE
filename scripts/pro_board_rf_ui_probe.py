@@ -75,6 +75,16 @@ def main():
                 print("KEY_TABLE",ix,"word",f"0x{int.from_bytes(data[idx:idx+4],'little'):08X}",
                       "key_mask",f"0x{int.from_bytes(data[idx:idx+2],'little'):04X}")
             print("KEY_TABLE_END")
+        verify={
+          "v1":[(0x08002310,0x08002416),(0x08002470,0x080024F0),
+                (0x0800B100,0x0800B1BE)],
+          "v2":[(0x08005E00,0x08005F14),(0x08031860,0x080318A0)]
+        }
+        for st,en in verify[version]:
+            print("VALIDATE_BEGIN",version,f"0x{st:08X}")
+            for ins in inspect_window(p,st,en):
+                print("VALIDATE",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
+            print("VALIDATE_END",version,f"0x{st:08X}")
         more={
           "v1":[(0x08002380,0x08002418),(0x08002478,0x08002514),
                 (0x08002508,0x0800270A),(0x08024D20,0x08024D7C)],
