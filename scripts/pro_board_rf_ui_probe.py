@@ -61,5 +61,23 @@ def main():
                 continue
             print("GPIO_REF",f"0x{pc:08X}",name,f"pool:0x{literal:08X}","POST",context(p,pc,hi=58))
         print("MMIO_XREFS_END")
+
+        windows={
+          "v1":[(0x08002408,0x08002480),(0x08003680,0x080036F0),
+                (0x08003778,0x080037C0),(0x08024E40,0x08024EB0)],
+          "v2":[(0x08005F20,0x08005F90),(0x08007194,0x08007200),
+                (0x08007286,0x080072D0),(0x08007320,0x08007388),
+                (0x080109A0,0x08010A50),(0x08010B30,0x08010BC0),
+                (0x080172B2,0x080172F4),(0x08030EB0,0x08030F38),
+                (0x08030F30,0x08030FC0),(0x08030FBA,0x08031022),
+                (0x0803101A,0x08031086),(0x0803107E,0x08031114),
+                (0x0803110A,0x08031160),(0x080312EA,0x08031350)]
+        }
+        for start,end in windows[version]:
+            print("HOTSPOT_BEGIN",version,f"0x{start:08X}",f"0x{end:08X}")
+            for row in inspect_window(p,start,end):
+                print("HOT",row["pc"],row["mnemonic"],row["operands"],row.get("literal_value",""))
+            print("HOTSPOT_END",version,f"0x{start:08X}")
+
 if __name__=="__main__":
     main()
