@@ -60,3 +60,14 @@ for edition,path in IMAGES.items():
     refs=find_calls(p,targets)
     for k,v in refs.items():
         print(k,len(v),[a["call_pc"] for a in v][:100])
+
+    if edition=="v2":
+        md=Cs(CS_ARCH_ARM, CS_MODE_THUMB | CS_MODE_LITTLE_ENDIAN)
+        print("\\nV2 RECOVERY PROLOGUE SINGLE HALFWORD DECODE")
+        for pc in range(0x080103C0,0x08010452,2):
+            off=pc-BASE
+            ins=next(md.disasm(p[off:off+4],pc,count=1),None)
+            print(hex(pc), hex(struct.unpack_from("<H",p,off)[0]),ins.mnemonic if ins else "invalid",ins.op_str if ins else "")
+        for candidate in (0x080103C8,0x080103F0,0x080103F2,0x080103F4,0x080103F6,0x080103F8,0x080103FA,0x080103FC,0x08010400,0x08010402):
+            z=find_calls(p,[candidate])
+            print("V2 RECOVERY ENTRY CANDIDATE",hex(candidate),[x["call_pc"] for x in z[f"0x{candidate:08X}"]][:15])
