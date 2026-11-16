@@ -15,5 +15,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install 'capstone==5.0.6'
-      - name: Inspect archived OEM control flow (no device access)
-        run: python scripts/xl9951q_reset_nor_discovery.py
+      - name: Verify archived OEM reset/NOR error chain (no device access)
+        run: |
+          python tools/xl9951q_reset_nor_status_audit.py --json > xl9951q-reset-nor-error-evidence.json
+          cat xl9951q-reset-nor-error-evidence.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xl9951q-reset-nor-error-evidence
+          path: xl9951q-reset-nor-error-evidence.json
