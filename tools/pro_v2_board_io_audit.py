@@ -65,6 +65,31 @@ STOCK_SITES = {
         (0x08030F92, "orr", "r0, r0, #0x4000", None),
         (0x08030F0C, "ldr", "r0, [r7]", None),
     ),
+    "lcd_spi2": (
+        (0x0800752C, "ldr", "r1, [pc", 0x40010C14),
+        (0x08007532, "orr", "r2, r2, #0x1000", None),
+        (0x08007538, "ldr", "r1, [pc", 0x40010814),
+        (0x08007542, "bl", "#0x8031864", None),
+        (0x0800755C, "ldr", "r1, [pc", 0x40010C14),
+        (0x08007568, "ldr", "r1, [pc", 0x40010810),
+        (0x08007572, "bl", "#0x8031864", None),
+        (0x08031866, "ldr", "r5, [pc", 0x40003800),
+        (0x0801504C, "movs", "r0, #0x11", None),
+        (0x08015058, "movs", "r0, #0xb1", None),
+        (0x08015070, "movs", "r0, #0xb2", None),
+        (0x08015088, "movs", "r0, #0xb3", None),
+        (0x08015124, "movs", "r0, #0x36", None),
+        (0x08015278, "add.w", "r5, r1, r1, lsl #2", None),
+        (0x0801527E, "add.w", "r5, r7, r5, lsl #6", None),
+        (0x08015318, "movs", "r0, #0x2a", None),
+        (0x08015338, "movs", "r0, #0x2b", None),
+        (0x0801535A, "movs", "r0, #0x2c", None),
+        (0x08015360, "ldr.w", "sl, [pc", 0x20004B76),
+        (0x08015376, "lsrs", "r0, r0, #8", None),
+        (0x08015378, "bl", "#0x800755c", None),
+        (0x0801537C, "ldrb.w", "r0, [r6, r4, lsl #1]", None),
+        (0x08015380, "bl", "#0x800755c", None),
+    ),
     "fd6818": (
         (0x08005E4C, "movs", "r0, #0xe2", None),
         (0x08005E64, "movs", "r0, #0xe3", None),
@@ -106,7 +131,7 @@ def original_v2_key_table(payload: bytes) -> dict:
         "entry_stride_bytes": KEY_STRIDE,
         "raw_words": [f"0x{x:08X}" for x in entries],
         "normalized_codes": [f"0x{x:04X}" for x in values],
-        "compressed_image_sha256": hashlib.sha256(image).hexdigest(),
+        "expanded_sram_sha256": hashlib.sha256(image).hexdigest(),
         "compressed_bytes_consumed": consumed,
         "physical_key_labels_known": False,
     }
@@ -126,11 +151,16 @@ def check_site(payload: bytes, address: int, mnemonic: str, operand: str,
 def verify_version(payload: bytes, version: str) -> dict:
     counts = {}
     for subsystem, entries in STOCK_SITES.items():
-        relocation = V1_RELOCATIONS[subsystem] if version == "v1" else 0
+        relocation = V1_RELOCATIONS.get(subsystem, 0) if version == "v1" else 0
+        if version == "v1" and subsystem == "lcd_spi2":
+            # Display helper V1 address relocation not yet independently
+            # pinned. Avoid treating the V2 PC as an OEM V1 fact.
+            counts[subsystem] = 0
+            continue
         for pc, mnemonic, operand, literal in entries:
-            # Direct BL target addresses differ after firmware relocation,
-            # and are independently pinned by a V1-specific control graph.
             if version == "v1" and mnemonic == "bl":
+                # V1 other-firmware callee addresses differ; corresponding
+                # literal and regular-instruction sites remain checked.
                 continue
             check_site(payload, pc - relocation, mnemonic, operand, literal)
         counts[subsystem] = len(entries) - (
@@ -146,6 +176,24 @@ def analyze(v1: bytes, v2: bytes) -> dict:
         "v1_instruction_check": verify_version(v1, "v1"),
         "v2_instruction_check": verify_version(v2, "v2"),
         "keypad": original_v2_key_table(v2),
+        "lcd": {
+            "spi_compatible_register_base": "0x40003800",
+            "command_helper": "0x0800752C",
+            "data_helper": "0x0800755C",
+            "gpio_control_cs_candidate": "PB12",
+            "gpio_control_dc_candidate": "PA12",
+            "software_framebuffer": "0x20004B76",
+            "software_width_px": 160,
+            "software_height_px": 128,
+            "software_row_stride_bytes": 320,
+            "software_framebuffer_end_exclusive": "0x2000EB76",
+            "gnss_dma_starts_at": "0x2000EB88",
+            "between_buffer_gap_bytes": 18,
+            "rgb565_big_endian_on_wire": True,
+            "panel_commands": ["0x11","0xB1","0xB2","0xB3","0x36","0x2A","0x2B","0x2C"],
+            "controller_family": "ST7735-like instruction sequence; actual silicon not verified",
+            "physical_panel_rotation_unverified": True,
+        },
         "interface_candidates": {
             "fd6818": {
                 "transport": "bit-banged 2-wire indexed register access",
@@ -174,7 +222,7 @@ def analyze(v1: bytes, v2: bytes) -> dict:
             "MCU silicon vendor and physical QFN64 pin numbers not verified.",
             "The FD6818/RDA5807 device association combines OEM code with chip markings and public guides, not direct I2C bus captures.",
             "No FD6818 frequency-in-Hz scaling or full RX/TX/PA calibration table is asserted.",
-            "No LCD controller identity, complete UI screen protocol or full physical board schematic is established.",
+            "LCD SPI2 command/data and RGB565 framebuffer are decoded; exact LCD controller, complete UI and physical board schematic remain unverified.",
             "The executable independent no_std modules are transport contracts, not a board-clock-accurate flashable firmware.",
         ],
     }
