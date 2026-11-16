@@ -84,7 +84,7 @@ EVIDENCE = {
             0x0800D34A: ("movs", "r0, #0x20"),
             0x0800D376: ("b.w", "#0x8006bd8"),
         },
-        "nor_program": (0x08006C28, 0x08006CAE),
+        "nor_program": (0x08006C28, 0x08006CB0),
         "nor_program_sites": {
             0x08006C46: ("bl", "#0x8006c04"),
             0x08006C56: ("movs", "r0, #2"),
