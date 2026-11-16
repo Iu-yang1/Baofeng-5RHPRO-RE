@@ -107,6 +107,15 @@ def main():
             for ins in inspect_window(p,start,end):
                 print("CONTROL",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
             print("CONTROL_END",version,f"0x{start:08X}")
+        if version=="v2":
+            target_calls=[
+              0x08005E42,0x08005E8C,0x08005EC6,0x08005EE0,0x08005F04,
+              0x08030DF0,0x08030E44,0x08031708,0x0803176E,
+              0x08031864,0x08032EB8,0x08010998,0x08010A4C
+            ]
+            caller_sets=find_calls(p,target_calls)
+            for dest,rows in caller_sets.items():
+                print("ROLE_XREF",dest,len(rows),[r["call_pc"] for r in rows][:75])
         target_groups={
             "v1":[0x08002410,0x08002480,0x08003690,0x08003784,0x08024E44,
                   0x08024EC0,0x08024FC0,0x08025010,0x080250A0],
