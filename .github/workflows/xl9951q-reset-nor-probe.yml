@@ -1,0 +1,23 @@
+name: XL9951Q reset and NOR error-flow evidence probe
+on:
+  push:
+    branches:
+      - research/xl9951q-reset-nor-error-propagation
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install 'capstone==5.0.6'
+      - run: |
+          python scripts/xl9951q_reset_nor_error_probe.py > nor-error-probe.txt
+          cat nor-error-probe.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nor-error-probe
+          path: nor-error-probe.txt
