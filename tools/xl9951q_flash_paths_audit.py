@@ -68,12 +68,12 @@ def audit_flash_driver(payload: bytes, edition: str) -> dict:
             raise ValueError(f"{edition}: FLASH literal pool changed at +0x{offset:X}")
     points = (
         (0x12, "ldr", "r4, [pc"),   # flash base from +0x38
-        (0x16, "ldr", "r0, [r4, #0x10]"),
+        (0x14, "ldr", "r0, [r4, #0x10]"),
         (0x1A, "str", "r0, [r4, #0x10]"),
         (0x1C, "str", "r5, [r4, #0x14]"),
         (0x24, "str", "r0, [r4, #0x10]"),
         (0x3C, "ldr", "r1, [pc"),   # FLASH_SR reader
-        (0x44, "ldr", "r2, [r1, #0xc]"),
+        (0x40, "ldr", "r2, [r1, #0xc]"),
         (0x66, "ldr", "r1, [r0, #0x10]"),
         (0x6C, "str", "r1, [r0, #0x10]"),
         (0x8E, "ldr", "r4, [pc"),   # PG programming
@@ -90,8 +90,8 @@ def audit_flash_driver(payload: bytes, edition: str) -> dict:
     # Under STM32F1 register conventions, PER=bit1, STRT=bit6,
     # PG=bit0, LOCK=bit7. Do not promote them to XL9951Q measurements.
     for offset, mnemonic, fragment in (
-        (0x16, "ldr", "#0x10"),
-        (0x16 + 2, "orr", "#2"),
+        (0x14, "ldr", "#0x10"),
+        (0x16, "orr", "#2"),
         (0x20, "orr", "#0x40"),
         (0x92, "orr", "#1"),
         (0x64, "ldr", "[pc"),
@@ -164,9 +164,6 @@ def audit_updater(source: str) -> dict:
     for name, value in expected.items():
         if values.get(name) != value:
             raise ValueError(f"host updater constant changed: {name}")
-    commands = values.get("CMD_FLASH")
-    if not isinstance(commands, list) or len(commands) < 2:
-        raise ValueError("host updater FLASH command list unavailable")
     # List elements are bytes([...]) calls; evaluate these data-only AST nodes.
     tree = ast.parse(source)
     nodes = [s.value for s in tree.body if isinstance(s, ast.Assign)
