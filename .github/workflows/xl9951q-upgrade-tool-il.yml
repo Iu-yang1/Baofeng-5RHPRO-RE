@@ -15,15 +15,27 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install offline .NET IL parser
-        run: python -m pip install dnfile dncil
+        run: python -m pip install dnfile dncil 'capstone==5.0.6'
       - name: Parse archived vendor .NET IL statically
         run: |
           python tools/upgrade_tool_il_audit.py > xl9951q-upgrade-tool-il-overview.txt
           python tools/upgrade_tool_il_audit.py --json > xl9951q-upgrade-tool-il.json
           cat xl9951q-upgrade-tool-il-overview.txt
+      - name: Read-only disassembly of application high Flash callers
+        run: |
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800D2D0 --end 0x0800D344 > xl9951q-v2-high-address-callers.txt
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080190D0 --end 0x080191D0 >> xl9951q-v2-high-address-callers.txt
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x080107D0 --end 0x08010824 >> xl9951q-v2-high-address-callers.txt
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08007C40 --end 0x08007C94 > xl9951q-v1-high-address-callers.txt
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08012D80 --end 0x08012E94 >> xl9951q-v1-high-address-callers.txt
+          python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x0800AF50 --end 0x0800AF90 >> xl9951q-v1-high-address-callers.txt
+          cat xl9951q-v2-high-address-callers.txt
+          cat xl9951q-v1-high-address-callers.txt
       - uses: actions/upload-artifact@v4
         with:
           name: xl9951q-upgrade-tool-il-metadata
           path: |
             xl9951q-upgrade-tool-il-overview.txt
             xl9951q-upgrade-tool-il.json
+            xl9951q-v2-high-address-callers.txt
+            xl9951q-v1-high-address-callers.txt
