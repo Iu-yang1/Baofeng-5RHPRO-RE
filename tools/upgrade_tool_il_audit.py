@@ -84,7 +84,8 @@ def collect(path: Path, include_all: bool = False) -> dict:
                 **method,
                 "instructions": [
                     {
-                        "offset": f"IL_{instruction.offset:04X}",
+                        "pe_offset": f"0x{instruction.offset:08X}",
+                        "il_offset": f"IL_{instruction.offset - body.offset - body.header_size:04X}",
                         "opcode": instruction.mnemonic,
                         "operand": describe(pe, instruction.operand),
                         "bytes": instruction.get_bytes().hex(),
@@ -104,14 +105,95 @@ def collect(path: Path, include_all: bool = False) -> dict:
     }
 
 
+
+RELEASE_SHA256 = "782ea95bc3b6bbb8100b2f80e65eefc59fedf1ea007c2ed393136b3caa62ae19"
+
+def verify_upgrade_il(snapshot: dict) -> dict:
+    """Require source-stable MethodDef tokens and real IL instruction operands."""
+    if snapshot["sha256"] != RELEASE_SHA256 or snapshot["method_count"] != 482 or snapshot["parse_failures"]:
+        raise ValueError("unexpected OEM Release binary or metadata inventory")
+    methods = {m["token"]: m for m in snapshot["selected"]}
+    for token, name in (("0x0600018C", "UpdateFirmware"),
+                        ("0x0600018D", "DoReadData"),
+                        ("0x0600018E", "DoWriteData")):
+        if token not in methods or methods[token]["name"] != name:
+            raise ValueError(f"missing {token} / {name}")
+    read = methods["0x0600018D"]
+    if read["il_code_size"] != 1 or [i["opcode"] for i in read["instructions"]] != ["ret"]:
+        raise ValueError("DoReadData is no longer a one-instruction stub")
+    dispatch = methods["0x0600018C"]
+    delegates = {i["operand"].get("token") for i in dispatch["instructions"]
+                 if i["opcode"] == "ldftn" and isinstance(i["operand"], dict)}
+    if not {"0x0600018D", "0x0600018E"} <= delegates:
+        raise ValueError("UpdateFirmware no longer selects read/write delegates")
+    write = methods["0x0600018E"]
+    if write["il_code_size"] != 1667:
+        raise ValueError("DoWriteData method size changed")
+    actual = {int(i["pe_offset"], 16): i for i in write["instructions"]}
+    checks = {
+        0x91F6: ("ldc.i4", 1024),
+        0x93DF: ("ldsfld", "CMD_FLASH"),
+        0x93FB: ("ldc.i4.s", 40),
+        0x9435: ("ldc.i4.s", 16),
+        0x9498: ("ldsfld", "CMD_PRG"),
+        0x94B1: ("ldc.i4.8", None),
+        0x94FC: ("ldc.i4.s", 80),
+        0x9558: ("ldc.i4", 1024),
+        0x959E: ("ldc.i4.s", 24),
+        0x95A8: ("ldc.i4.s", 16),
+        0x95B2: ("ldc.i4.8", None),
+        0x9605: ("ldc.i4.5", None),
+        0x9606: ("callvirt", "Write"),
+        0x9612: ("callvirt", "Write"),
+        0x976D: ("ldstr", "Communication success"),
+    }
+    for pc, (opcode, target) in checks.items():
+        inst = actual.get(pc)
+        if inst is None or inst["opcode"] != opcode:
+            raise ValueError(f"IL opcode mismatch at PE offset 0x{pc:04X}: {inst}")
+        value = inst["operand"]
+        if isinstance(value, dict):
+            value = value.get("name", value.get("value"))
+        if target is not None and value != target:
+            raise ValueError(f"IL operand mismatch at PE offset 0x{pc:04X}: {value}")
+    consts = [i["operand"] for i in write["instructions"]
+              if i["opcode"].startswith("ldc.i4") and isinstance(i["operand"], int)]
+    return {
+        "sha256": snapshot["sha256"],
+        "method_body_count": snapshot["method_count"],
+        "read_entry": {"method": "0x0600018D", "body": "ret", "flash_backup_implemented": False},
+        "dispatch": {"method": "0x0600018C", "read": "0x0600018D", "write": "0x0600018E"},
+        "write_entry": {
+            "method": "0x0600018E",
+            "size_bytes": write["il_code_size"],
+            "verified_pe_offsets": [f"0x{pc:04X}" for pc in checks],
+            "wire_chunk_bytes": 1024,
+            "wire_offset_bytes": 4,
+            "wire_offset_endianness": "big",
+            "file_header_skipped_bytes": 80,
+            "end_ack_followed_by_success_message": True,
+            "hardcoded_cpu_flash_addresses": [
+                f"0x{v:08X}" for v in consts if 0x08000000 <= v < 0x08200000
+            ],
+        },
+        "limitations": [
+            "PE file offsets are distinct from method-relative IL offsets.",
+            "No target-side Bootloader or memory controller examined.",
+            "No executed code, UART communication or device flashing.",
+        ],
+    }
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--file", type=Path, default=DATA_PATH)
     p.add_argument("--json", action="store_true")
     p.add_argument("--all-methods", action="store_true")
+    p.add_argument("--verify", action="store_true")
     args = p.parse_args()
     r = collect(args.file, args.all_methods)
-    if args.json:
+    if args.verify:
+        print(json.dumps(verify_upgrade_il(r), indent=2, ensure_ascii=False))
+    elif args.json:
         print(json.dumps(r, indent=2, ensure_ascii=False))
     else:
         print("UpgradeTool IL:", r["method_count"], "methods;", len(r["selected"]), "selected")
@@ -123,7 +205,7 @@ def main() -> int:
                 continue
             print("METHOD", m["token"], m["name"])
             for i in m["instructions"]:
-                print(i["offset"], i["opcode"], i["operand"])
+                print(i["pe_offset"], i["il_offset"], i["opcode"], i["operand"])
         print("parse failures:", len(r["parse_failures"]))
     return 0
 
