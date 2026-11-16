@@ -4,6 +4,8 @@ This fork is the development workspace for an alternative-firmware research proj
 
 Original reverse-engineering archive: https://github.com/kholdfuzion/Baofeng-5RHPRO-RE
 
+> **Hardware correction (2026-11-16): the UV-5RH Pro MCU package is QFN-64, as confirmed by the user.** Earlier photo-based LQFP64 identification and any LQFP64 pin-number guidance are retracted. Published LQFP64 parts in the comparative table are **not** package matches for this radio. MCU vendor and SKU remain unknown; firmware-only analysis continues.
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
@@ -76,9 +78,10 @@ This strengthens the shared **AIR32/MH32/MH2103 SDK-lineage** finding,
 but does **not** identify the physical manufacturer.
 
 The official MegaHunt MH2103A *family* has 128–1024 KiB Flash options.
-The specific published **LQFP64 MH2103ARPT6 remains 256 KiB**, while
-512/1024 KiB published MH2103A V-package SKUs use **LQFP100**, which
-conflicts with the photographed LQFP64. The same SKU-versus-series
+**Hardware correction:** the user confirms this MCU is **QFN64**, not
+LQFP64. The published **MH2103ARPT6 is LQFP64 / 256 KiB**, while
+the 512/1024 KiB MH2103A V-package SKUs use **LQFP100**. **None of
+these published standard SKUs match the reported QFN64 package**. The same SKU-versus-series
 distinction applies to AIR32F103. Original V2 startup requires a
 readable program address at `0x08061A54`; no external SPI NOR alias has
 been verified. AT32F403A/407 resource-compatible parts remain
@@ -149,9 +152,9 @@ cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
 
 [Read the Chinese source-backed MCU identification report](docs/v2-0-09-mcu-identification-amoxu.zh-CN.md).
 
-The **standard AT32F421C8T7** used in ordinary UV-5RH/5RM is excluded by **five** independent Pro V2 facts: actual scatterload reads Flash at `0x08061A54` (>64KiB), startup RAM/MSP exceeds 16KiB, three USARTs are initialized, USART2 uses a DMA1-channel-6-compatible address, and user board photos show LQFP64 instead of LQFP48. **Do not reuse its 64K/16K linker or PAC.**
+The **standard AT32F421C8T7** used in ordinary UV-5RH/5RM is excluded by **five** independent Pro V2 facts: actual scatterload reads Flash at `0x08061A54` (>64KiB), startup RAM/MSP exceeds 16KiB, three USARTs are initialized, USART2 uses a DMA1-channel-6-compatible address, and user-confirmed QFN64 differs from the standard LQFP48 part. **Do not reuse its 64K/16K linker or PAC.**
 
-AT32F403ARET7/ARGT7, AT32F407RET7/RGT7 and GD32F303RGT6 are resource-compatible candidates, **not chip identifications**. The original clock getter treats CRM_CFG bit28 as part of the PLL multiplier, while AT32F403A/407 official manuals assign it to ADC prescaling. Thus even family-level registers have unresolved differences.
+AT32F403ARET7/ARGT7, AT32F407RET7/RGT7 and GD32F303RGT6 may satisfy some resource requirements, but **their published LQFP64 standard parts do not match the user's actual QFN64 package**. They are no longer shortlisted as matching standard physical part numbers. The original clock getter treats CRM_CFG bit28 as part of the PLL multiplier, while AT32F403A/407 official manuals assign it to ADC prescaling. Thus even family-level registers have unresolved differences.
 
 ```sh
 python tools/v2_mcu_candidate_matrix.py firmware/BF_5RH_501_v2_0_9.dat
