@@ -67,6 +67,30 @@ protocol contains a Flash-erase step, and the V2 GPIO/UART physical path,
 startup clock and recovery behavior are not verified. There is no SWD
 or physical device ID read in the repository so far.
 
+### Six-version MCU software lineage: confirmed, physical SKU still unknown
+
+All six archived UV-5RH Pro stock firmware versions (V1.0.92, V1.0.97,
+V1.1.00, V1.1.04, V2.0.07 and V2.0.09) contain **the same 216 bytes**
+at the AIR32-style ROM helper window `0x08001280–0x08001357`.
+This strengthens the shared **AIR32/MH32/MH2103 SDK-lineage** finding,
+but does **not** identify the physical manufacturer.
+
+The official MegaHunt MH2103A *family* has 128–1024 KiB Flash options.
+The specific published **LQFP64 MH2103ARPT6 remains 256 KiB**, while
+512/1024 KiB published MH2103A V-package SKUs use **LQFP100**, which
+conflicts with the photographed LQFP64. The same SKU-versus-series
+distinction applies to AIR32F103. Original V2 startup requires a
+readable program address at `0x08061A54`; no external SPI NOR alias has
+been verified. AT32F403A/407 resource-compatible parts remain
+candidates, not proofs of ROM interface compatibility.
+
+[Detailed evidence and six-version script (中文)](docs/uv5rhpro-six-stock-mcu-lineage.zh-CN.md).
+
+```sh
+python tools/stock_mcu_lineage.py
+python tools/v2_mcu_candidate_matrix.py firmware/BF_5RH_501_v2_0_9.dat
+```
+
 ### V1/V2 instruction-level identity-register audit
 
 [中文报告：UID / F_SIZE / ARM CPUID / AT32 PID 的 Thumb CFG 读取审计](docs/v1-v2-mcu-id-cfg-reads.zh-CN.md)
