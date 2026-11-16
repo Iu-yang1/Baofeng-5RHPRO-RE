@@ -91,6 +91,20 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
             self.assertEqual(by_part[part]["resource_failures"], [])
             self.assertEqual(len(by_part[part]["failures"]), 1)
 
+    def test_xl9951q_catalogue_is_only_package_marking_evidence(self):
+        evidence = self.report["evidence"]
+        catalog = evidence["matching_jlcpcb_catalog_record"]
+        self.assertEqual(evidence["observed_top_marking_candidate"], "XL9951Q")
+        self.assertEqual(catalog["part_number"], "XL9951Q")
+        self.assertEqual(catalog["jlcpcb_part_number"], "C9900238147")
+        self.assertEqual(catalog["published_package"], "QFN-64_8x8")
+        self.assertEqual(catalog["listed_body_size_mm"], [8, 8])
+        self.assertEqual(catalog["listed_manufacturer_field"], "JLCPCB Assembly")
+        self.assertFalse(catalog["manufacturer_field_is_silicon_vendor_evidence"])
+        self.assertIsNone(catalog["cpu_core"])
+        self.assertIsNone(catalog["flash_kib"])
+        self.assertIsNone(catalog["ram_kib"])
+
     def test_qfn64_package_only_matches_package_not_mcu_identity(self):
         evidence = self.report["evidence"]
         synthetic = {
