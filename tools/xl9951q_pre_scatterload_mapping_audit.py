@@ -67,7 +67,7 @@ def _rom_bl_sites(payload: bytes, edition: str) -> list[str]:
     return sites
 
 
-def analyze(v2: bytes, v1: bytes | None = None) -> dict:
+def _audit_v2(v2: bytes, v1: bytes | None) -> tuple[dict, dict]:
     stage = verify_reset_to_main(v2, V2, True)
     helper = verify_rom_helper(v2, v1)
     # The instruction audit does not check every word in the helper literal
@@ -99,22 +99,7 @@ def analyze(v2: bytes, v1: bytes | None = None) -> dict:
         v2[start:start+consumed]
     ).hexdigest()
     v2_callers = _rom_bl_sites(v2, "v2")
-    v1_audit = None
-    if v1 is not None:
-        v1_stage = verify_reset_to_main(v1, V1, False)
-        v1_audit = {
-            "verified_reset_to_main": v1_stage,
-            "rom_helper_direct_bl_sites": _rom_bl_sites(v1, "v1"),
-            "same_216_byte_rom_helper_as_v2": bool(
-                helper["v1_v2_window_comparison"]["byte_for_byte_identical"]
-            ),
-        }
-        if not v1_audit["same_216_byte_rom_helper_as_v2"]:
-            raise ValueError("V1/V2 shared ROM helper code changed")
-
     return {
-        "method": "decoded original firmware; static call sequence, no runtime execution",
-        "v2": {
             "reset_to_main": stage,
             "scatterload_source": source,
             "scatterload_region_count": len(all_regions["descriptors"]),
@@ -133,7 +118,29 @@ def analyze(v2: bytes, v1: bytes | None = None) -> dict:
                 "control_mmio": "0x4002228C",
                 "sdk_name": "QSPI unlock / restore; not evidence of GT25Q16A XIP",
             },
-        },
+    }, helper
+
+
+def _audit_v1(v1: bytes, helper: dict) -> dict:
+    v1_stage = verify_reset_to_main(v1, V1, False)
+    result = {
+        "verified_reset_to_main": v1_stage,
+        "rom_helper_direct_bl_sites": _rom_bl_sites(v1, "v1"),
+        "same_216_byte_rom_helper_as_v2": bool(
+            helper["v1_v2_window_comparison"]["byte_for_byte_identical"]
+        ),
+    }
+    if not result["same_216_byte_rom_helper_as_v2"]:
+        raise ValueError("V1/V2 shared ROM helper code changed")
+    return result
+
+
+def analyze(v2: bytes, v1: bytes | None = None) -> dict:
+    v2_report, helper = _audit_v2(v2, v1)
+    v1_audit = _audit_v1(v1, helper) if v1 is not None else None
+    return {
+        "method": "decoded original firmware; static call sequence, no runtime execution",
+        "v2": v2_report,
         "v1": v1_audit,
         "stage_order": [
             "0. Prior bootloader or mask ROM behavior unknown (not in .dat application)",
