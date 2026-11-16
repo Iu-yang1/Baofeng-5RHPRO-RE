@@ -103,6 +103,13 @@ def main():
                 for ins in inspect_window(p,start,end):
                     print("DISPLAY",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
                 print("DISPLAY_END",f"0x{start:08X}")
+        if version=="v2":
+            for st,en in [(0x08015030,0x08015150),(0x08015150,0x0801525C),
+                          (0x0801525C,0x0801539C),(0x0800AFC0,0x0800B0AC)]:
+                print("LCD_INIT_BEGIN",f"0x{st:08X}")
+                for r in inspect_window(p,st,en):
+                    print("LCD_INIT",r["pc"],r["mnemonic"],r["operands"],r.get("literal_value",""))
+                print("LCD_INIT_END",f"0x{st:08X}")
         verify={
           "v1":[(0x08002310,0x08002416),(0x08002470,0x080024F0),
                 (0x0800B100,0x0800B1BE)],
