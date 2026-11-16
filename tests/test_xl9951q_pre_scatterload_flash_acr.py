@@ -83,9 +83,7 @@ class OriginalResetFlashAcrTests(unittest.TestCase):
 
     def test_changed_reset_vtor_literal_fails(self):
         payload = bytearray(self.payloads["v1"])
-        pc = VERSIONS["v1"]["reset_clock_wrapper"] + 0x4C
-        # The reset wrapper loads a literal in its following constant pool;
-        # direct mutation of the corresponding VTOR word must be detected.
+        # The following constant pool contains the VTOR register address.
         pc = VERSIONS["v1"]["reset_clock_wrapper"] + 0x4C
         payload[pc - 0x08001000] ^= 0x01
         with self.assertRaises(ValueError):
