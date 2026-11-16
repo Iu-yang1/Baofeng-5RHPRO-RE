@@ -78,12 +78,12 @@ class OriginalRecoveryTests(unittest.TestCase):
 
 class RecoveryBranchModelTests(unittest.TestCase):
     def test_erased_journal_skips_recovery(self):
-        result = classify_recovery(b"\\xff" * 8)
+        result = classify_recovery(b"\xff" * 8)
         self.assertEqual(result["target_nor_offset"], 0xFFFFFFFF)
         self.assertEqual(result["action"], "skip_empty")
 
     def test_committed_journal_clears_without_replay(self):
-        result = classify_recovery((0x123000).to_bytes(4,"little") + b"\\x01\\x00\\x00\\x00")
+        result = classify_recovery((0x123000).to_bytes(4,"little") + b"\x01\x00\x00\x00")
         self.assertEqual(result["action"], "skip_committed_then_clear")
 
     def test_pending_journal_reads_backup(self):
@@ -92,7 +92,7 @@ class RecoveryBranchModelTests(unittest.TestCase):
 
     def test_pending_matching_sector_clears_without_replay(self):
         header = (0x123000).to_bytes(4,"little") + bytes(4)
-        sector = b"\\x77" * SECTOR_BYTES
+        sector = b"\x77" * SECTOR_BYTES
         result = classify_recovery(header, sector, sector)
         self.assertEqual(result["action"], "equal_then_clear")
 
