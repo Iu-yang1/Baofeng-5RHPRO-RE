@@ -34,6 +34,10 @@ jobs:
         run: |
           python tools/xl9951q_pre_scatterload_mapping_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat
           python tools/xl9951q_pre_scatterload_mapping_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json > xl9951q-pre-scatterload-flash-evidence.json
+      - name: Validate V1/V2 pre-scatterload RCC + FLASH_ACR instruction lineage
+        run: |
+          python tools/xl9951q_pre_scatterload_flash_acr.py
+          python tools/xl9951q_pre_scatterload_flash_acr.py --json > xl9951q-reset-flash-acr.json
       - name: Search firmware for debugger/flash-register identification self-checks
         run: |
           python tools/v2_mcu_identity_xrefs.py firmware/BF_5RH_501_v2_0_9.dat
@@ -56,4 +60,5 @@ jobs:
             v2-mcu-identity-xrefs.json
             stock-six-version-mcu-lineage.json
             xl9951q-pre-scatterload-flash-evidence.json
+            xl9951q-reset-flash-acr.json
           if-no-files-found: error
