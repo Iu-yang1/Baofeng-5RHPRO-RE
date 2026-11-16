@@ -38,6 +38,9 @@ jobs:
           python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x0800D320 --end 0x0800D3D0 >> xl9951q-v2-nor-helpers.txt
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08002F90 --end 0x080031B0 > xl9951q-v1-nor-helpers.txt
           python tools/thumb_window.py firmware/BF_5RH_501_v1_1_04.dat --start 0x08007C80 --end 0x08007D10 >> xl9951q-v1-nor-helpers.txt
+          python tools/thumb_window.py firmware/BF_5RH_501_v2_0_9.dat --start 0x08010620 --end 0x08010828 > xl9951q-v2-journal-recovery-context.txt
+          python tools/thumb_callsites.py firmware/BF_5RH_501_v2_0_9.dat --target 0x080190E0 --target 0x0800D304 --target 0x0800D334 --target 0x08006AA8 >> xl9951q-v2-journal-recovery-context.txt
+          cat xl9951q-v2-journal-recovery-context.txt
           cat xl9951q-v2-nor-helpers.txt
           cat xl9951q-v1-nor-helpers.txt
           cat xl9951q-v2-high-address-callers.txt
@@ -53,4 +56,5 @@ jobs:
             xl9951q-v2-high-address-callers.txt
             xl9951q-v1-high-address-callers.txt
             xl9951q-v2-nor-helpers.txt
+            xl9951q-v2-journal-recovery-context.txt
             xl9951q-v1-nor-helpers.txt
