@@ -14,6 +14,8 @@ from capstone.arm import ARM_OP_MEM,ARM_REG_PC
 from mcu_fingerprint import decoded_payload
 from thumb_window import inspect_window
 from thumb_callsites import find_calls
+from v2_scatterload_decode import decompress_region
+from v2_scatterload_regions import REGION_START
 
 BASE=0x08001000
 MMIO={
@@ -62,6 +64,27 @@ def main():
                 continue
             print("GPIO_REF",f"0x{pc:08X}",name,f"pool:0x{literal:08X}","POST",context(p,pc,hi=58))
         print("MMIO_XREFS_END")
+
+        if version=="v2":
+            load,run,size,handler=struct.unpack_from("<IIII",p,REGION_START-BASE)
+            next_load=struct.unpack_from("<I",p,REGION_START-BASE+16)[0]
+            data,consumed=decompress_region(p[load-BASE:next_load-BASE],size)
+            print("KEY_TABLE_START",f"0x{0x200000A6:08X}","length",22)
+            for ix in range(22):
+                idx=0xA6+4*ix
+                print("KEY_TABLE",ix,"word",f"0x{int.from_bytes(data[idx:idx+4],'little'):08X}",
+                      "key_mask",f"0x{int.from_bytes(data[idx:idx+2],'little'):04X}")
+            print("KEY_TABLE_END")
+        focus={
+         "v1":[(0x08024D70,0x08024E40),(0x080256C0,0x08025730)],
+         "v2":[(0x08030DD0,0x08030E98),(0x08031738,0x080317C0),
+               (0x08010968,0x080109AE),(0x08010A20,0x08010A4A)]
+        }
+        for start,end in focus[version]:
+            print("CONTROL_BEGIN",version,f"0x{start:08X}")
+            for ins in inspect_window(p,start,end):
+                print("CONTROL",ins["pc"],ins["mnemonic"],ins["operands"],ins.get("literal_value",""))
+            print("CONTROL_END",version,f"0x{start:08X}")
         target_groups={
             "v1":[0x08002410,0x08002480,0x08003690,0x08003784,0x08024E44,
                   0x08024EC0,0x08024FC0,0x08025010,0x080250A0],
