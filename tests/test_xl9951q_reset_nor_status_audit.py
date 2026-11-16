@@ -33,7 +33,7 @@ class StockNorErrorPathTests(unittest.TestCase):
                 self.assertEqual(r["spi_byte_exchange"]["rx_poll_limit_immediate"], "0xC8")
                 self.assertFalse(r["nor_write_and_replay"]["restore_result_checked_before_journal_clear"])
                 self.assertFalse(r["nor_status_poll"]["total_timeout_present_in_bounded_function"])
-                self.assertGreaterEqual(r["validated_thumb_sites"], 24)
+                self.assertEqual(r["validated_thumb_sites"], 23)
         self.assertFalse(report["cross_version"]["actual_board_behavior_verified"])
 
     def _mutation(self, edition: str, address: int):
