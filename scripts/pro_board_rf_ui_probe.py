@@ -13,6 +13,7 @@ from capstone import Cs,CS_ARCH_ARM,CS_MODE_THUMB,CS_MODE_LITTLE_ENDIAN
 from capstone.arm import ARM_OP_MEM,ARM_REG_PC
 from mcu_fingerprint import decoded_payload
 from thumb_window import inspect_window
+from thumb_callsites import find_calls
 
 BASE=0x08001000
 MMIO={
@@ -61,6 +62,16 @@ def main():
                 continue
             print("GPIO_REF",f"0x{pc:08X}",name,f"pool:0x{literal:08X}","POST",context(p,pc,hi=58))
         print("MMIO_XREFS_END")
+        target_groups={
+            "v1":[0x08002410,0x08002480,0x08003690,0x08003784,0x08024E44,
+                  0x08024EC0,0x08024FC0,0x08025010,0x080250A0],
+            "v2":[0x08005F28,0x08005F94,0x080071A0,0x08007206,0x08007294,
+                  0x08030EB8,0x08030F34,0x08030FC0,0x08031020,
+                  0x08031084,0x080310E8,0x08031148,0x080312F0]
+        }
+        calls=find_calls(p,target_groups[version])
+        for dest,sites in calls.items():
+            print("BUS_CALLS",dest,len(sites),[x["call_pc"] for x in sites][:100])
 
         windows={
           "v1":[(0x08002408,0x08002480),(0x08003680,0x080036F0),
