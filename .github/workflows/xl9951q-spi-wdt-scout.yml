@@ -1,0 +1,27 @@
+name: XL9951Q archived SPI watchdog evidence
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'capstone==5.0.6'
+      - name: Trace archived OEM images without executing firmware
+        run: |
+          python scripts/xl9951q_spi_wdt_scout.py > xl9951q-spi-wdt-scout.txt
+      - name: Verify bounded OEM SPI and IWDG sites
+        run: |
+          python tools/xl9951q_spi_wdt_integrity_audit.py
+          python tools/xl9951q_spi_wdt_integrity_audit.py --json > xl9951q-spi-wdt-integrity.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xl9951q-spi-wdt-scout
+          path: |
+            xl9951q-spi-wdt-scout.txt
+            xl9951q-spi-wdt-integrity.json

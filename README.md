@@ -135,6 +135,27 @@ proof of failures on a real GT25Q16A.
 python tools/xl9951q_reset_nor_error_audit.py --json
 ```
 
+### SPI3 byte-transfer errors, IWDG startup, and NOR journal integrity (V1/V2)
+
+The [new read-only cross-version verification report (中文)](docs/xl9951q-spi-wdt-recovery-integrity.zh-CN.md)
+tracks the lower SPI3 byte exchange into NOR read-status and the
+IWDG configuration that precedes startup journal recovery.
+Both applications use the same 76-byte SPI3 transfer implementation,
+with two status polls bounded at `0xC8` and `0` returned on timeout.
+Because the NOR `0x05` status reader tests bit0 of this same return
+value, an SPI receive timeout can be misinterpreted as WIP cleared.
+Both applications configure a `0x40003000` IWDG-compatible watchdog
+before invoking journal replay; the NOR WIP loop itself does not
+reload the watchdog.
+
+This resolves the currently available **offline software evidence**;
+it does not measure XL9951Q actual watchdog seconds, silicon identity,
+NOR physical operation, or power-loss robustness.
+
+```sh
+python tools/xl9951q_spi_wdt_integrity_audit.py --json
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
