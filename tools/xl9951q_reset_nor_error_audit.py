@@ -119,19 +119,32 @@ def _require(index: dict[int, dict], pc: int, name: str, operand: str) -> None:
         raise ValueError(f"unexpected source instruction at {pc:#010x}: {row}")
 
 
+def _check_peripheral_paths(payload: bytes, info: dict, edition: str) -> dict:
+        checks = {}
+        for label in ("nor_status", "nor_program", "nor_erase", "nor_replay", "flash_erase"):
+            start, end = info[label]
+            index = {int(r["pc"], 16): r for r in inspect_window(payload, start, end)}
+            assertions = info[label + "_sites"]
+            for pc, (opcode, operand) in assertions.items():
+                _require(index, pc, opcode, operand)
+            checks[label] = len(assertions)
+    
+            # The fixed stock NOR status body tests only RDSR bit0 and branches
+        # back to the status command, with no bounded retry counter in this span.
+        status = inspect_window(payload, *info["nor_status"])
+        if any(r["mnemonic"] in ("cbz", "cbnz", "bhi", "bhs", "blo", "bls")
+               for r in status):
+            raise ValueError(f"{edition}: unexpected NOR status exit condition")
+    
+        return checks
+
+
 def audit_one(payload: bytes, edition: str) -> dict:
     info = EVIDENCE[edition]
     stock = STOCK[edition]
     reset = verify_reset_to_main(payload, info["spec"], edition == "v2")
     recovery = verify_recovery(payload, edition)
-    checks = {}
-    for label in ("nor_status", "nor_program", "nor_erase", "nor_replay", "flash_erase"):
-        start, end = info[label]
-        index = {int(r["pc"], 16): r for r in inspect_window(payload, start, end)}
-        assertions = info[label + "_sites"]
-        for pc, (opcode, operand) in assertions.items():
-            _require(index, pc, opcode, operand)
-        checks[label] = len(assertions)
+    checks = _check_peripheral_paths(payload, info, edition)
 
     # Decode a single, continuous main prologue and assert that these BLs
     # occur in order before the next initialization block; no conditional branch.
@@ -159,13 +172,6 @@ def audit_one(payload: bytes, edition: str) -> dict:
     keys = sorted(info["recovery_sites"])
     if keys[1] != keys[0] + 4:
         raise ValueError(f"{edition}: changed recovery cleanup sequencing")
-
-    # The fixed stock NOR status body tests only RDSR bit0 and branches
-    # back to the status command, with no bounded retry counter in this span.
-    status = inspect_window(payload, *info["nor_status"])
-    if any(r["mnemonic"] in ("cbz", "cbnz", "bhi", "bhs", "blo", "bls")
-           for r in status):
-        raise ValueError(f"{edition}: unexpected NOR status exit condition")
 
     return {
         "reset": reset["reset_vector"],
