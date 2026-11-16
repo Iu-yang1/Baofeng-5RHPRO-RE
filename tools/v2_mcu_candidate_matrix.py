@@ -15,6 +15,7 @@ from pathlib import Path
 
 from mcu_fingerprint import decoded_payload
 from v2_memory_layout import analyze as memory_layout
+from v2_scatterload_decode import inspect_tables as inspect_compressed_region
 from v2_uart_protocol_evidence import analyze as uart_protocol
 
 FLASH_BASE = 0x08000000
@@ -106,7 +107,7 @@ SPECS = (
 
 def compare_spec(spec: dict, evidence: dict) -> dict:
     resource_failures = []
-    if spec["flash_kib"] * 1024 <= evidence["highest_executed_flash_source_offset"]:
+    if spec["flash_kib"] * 1024 <= evidence["highest_read_scatterload_source_offset"]:
         resource_failures.append("insufficient addressable program Flash for startup's actual source address")
     if spec["ram_kib"] * 1024 < evidence["initial_sp_offset_from_sram"]:
         resource_failures.append("initial MSP and zero region extend beyond specified SRAM")
@@ -142,6 +143,11 @@ def compare_spec(spec: dict, evidence: dict) -> dict:
 
 def analyze(payload: bytes) -> dict:
     memory = memory_layout(payload)
+    compressed = inspect_compressed_region(payload)
+    compressed_source = int(compressed["source_address"], 16)
+    last_read_address = compressed_source + compressed["compressed_bytes_consumed"] - 1
+    if compressed_source != SCATTERLOAD_COMPRESSED_SOURCE:
+        raise ValueError("unexpected high Flash compressed source")
     serial = uart_protocol(payload)
     usarts = {
         serial["gnss_nmea_rx"]["uart"],
@@ -153,6 +159,9 @@ def analyze(payload: bytes) -> dict:
         "flash_base_hypothesis": f"0x{FLASH_BASE:08X}",
         "actual_scatterload_source_pc": f"0x{SCATTERLOAD_COMPRESSED_SOURCE:08X}",
         "highest_executed_flash_source_offset": SCATTERLOAD_COMPRESSED_SOURCE-FLASH_BASE,
+        "last_read_scatterload_source_address": f"0x{last_read_address:08X}",
+        "highest_read_scatterload_source_offset": last_read_address-FLASH_BASE,
+        "minimum_program_readable_window_kib": (last_read_address - FLASH_BASE + 1024)//1024,
         "initial_sp": memory["initial_msp_candidate"],
         "initial_sp_offset_from_sram": int(memory["initial_msp_candidate"], 16)-0x20000000,
         "data_bytes": memory["data_region"]["length"],
@@ -181,7 +190,7 @@ def analyze(payload: bytes) -> dict:
             ),
         },
         "previous_photo_package_inference": "LQFP64 photo classification was incorrect; QFN64 now confirmed by user",
-        "evidence_note": "Original decoded image + user-confirmed and counted QFN64 package; flash source proven by scatterload; memory and peripheral mapping conditional on Cortex-M/STM32-compatible architecture.",
+        "evidence_note": "Original decoded image + user-confirmed and counted QFN64 package; startup compressed source and final used byte recovered via actual decompression. Internal Flash capacity and physical mapping remain unmeasured.",
     }
     if not memory["data_then_zero_contiguous"] or not memory["last_region_end_equals_initial_msp"]:
         raise ValueError("V2 scatterload RAM data no longer matches initial MSP")
@@ -191,7 +200,7 @@ def analyze(payload: bytes) -> dict:
         "candidates": [compare_spec(spec, evidence) for spec in SPECS],
         "interpretation": (
             "Standard part numbers are tested against the stock image assuming "
-            "the high 0x08061A54 startup source is directly mapped program Flash. "
+            "the full compressed source span 0x08061A54..0x08062AEA is directly mapped program Flash. "
             "A mismatch is a published-SKU conflict, not a proof that an OEM "
             "version or remapped flash architecture cannot execute this firmware. "
             "The user has counted 64 terminals and confirmed the QFN package. "

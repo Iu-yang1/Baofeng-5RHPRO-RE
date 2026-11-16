@@ -6,6 +6,24 @@ Original reverse-engineering archive: https://github.com/kholdfuzion/Baofeng-5RH
 
 > **Hardware correction (2026-11-16): the UV-5RH Pro MCU package is QFN-64, as confirmed by the user.** Earlier photo-based LQFP64 identification and any LQFP64 pin-number guidance are retracted. Published LQFP64 parts in the comparative table are **not** package matches for this radio. MCU vendor and SKU remain unknown; firmware-only analysis continues.
 
+### XL9951Q startup Flash/QSPI stage-order evidence (no device access)
+
+A [new read-only V1/V2 ROM and scatterload sequencing audit](docs/xl9951q-boot-high-flash-vs-qspi-audit.zh-CN.md)
+confirms that the V2 compressed SRAM source at `0x08061A54` is **within the
+401,408-byte original upgrade payload** and that the restored 7,084-byte
+SRAM segment matches its independently verified digest. The AIR32-compatible
+ROM helper's `0x4002228C` QSPI-labelled unlock is reached from the
+**application main after the initial ARM scatterload**; it is not itself
+evidence of pre-scatterload external NOR XIP mapping.
+
+An unknown mask ROM or bootloader may still preconfigure an alias, and the
+chip's actual internal Flash capacity has **not** been measured. This research
+neither reads a real MCU nor creates any flashable image.
+
+```sh
+python tools/xl9951q_pre_scatterload_mapping_audit.py firmware/BF_5RH_501_v2_0_9.dat --v1 firmware/BF_5RH_501_v1_1_04.dat --json
+```
+
 ### Verified component catalogue record for the unidentified MCU
 
 The user confirmed the UV-5RH Pro main device is **QFN64** and provided the
