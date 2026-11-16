@@ -17,7 +17,9 @@ jobs:
       - name: Prepare disassembler
         run: python -m pip install 'capstone==5.0.6'
       - name: Trace startup and journal literal XREFs (read-only)
-        run: python tools/xl9951q_journal_recovery_discovery.py > xl9951q-journal-recovery-trace.txt
+        run: |
+          python tools/xl9951q_journal_recovery_discovery.py > xl9951q-journal-recovery-trace.txt
+          cat xl9951q-journal-recovery-trace.txt
       - uses: actions/upload-artifact@v4
         with:
           name: xl9951q-journal-recovery-trace
