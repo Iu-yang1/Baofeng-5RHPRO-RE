@@ -23,6 +23,9 @@ class MCUFamilyIdentificationTests(unittest.TestCase):
     def test_source_comes_from_original_scatterload(self):
         evidence = self.report["evidence"]
         self.assertEqual(evidence["actual_scatterload_source_pc"], "0x08061A54")
+        self.assertEqual(evidence["last_read_scatterload_source_address"], "0x08062AEA")
+        self.assertEqual(evidence["highest_read_scatterload_source_offset"], 0x62AEA)
+        self.assertEqual(evidence["minimum_program_readable_window_kib"], 395)
         self.assertEqual(evidence["initial_sp"], "0x20011308")
         self.assertEqual(evidence["initial_sp_offset_from_sram"], 70408)
         self.assertEqual(evidence["independent_usart_instances"], 3)
