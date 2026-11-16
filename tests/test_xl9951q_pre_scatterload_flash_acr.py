@@ -64,7 +64,7 @@ class OriginalResetFlashAcrTests(unittest.TestCase):
         self.assertTrue(row["early_acr_is_not_qspi_unlock"])
         self.assertFalse(row["confirmed_external_nor_xip_mapper"])
         self.assertIn("post-scatterload", row["separate_application_rom_unlock"])
-        self.assertIn("OEM bootloader or mask ROM",
+        self.assertIn("mask-ROM initialization",
                       " ".join(self.report["limits"]))
 
     def test_flipped_flash_control_literal_fails(self):
