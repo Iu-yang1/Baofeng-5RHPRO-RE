@@ -13,8 +13,8 @@ from thumb_callsites import find_calls
 
 BASE=0x08001000
 VERSION={
- "v1":{"file":"firmware/BF_5RH_501_v1_1_04.dat","spi":0x080257A0,"start":0x08025770,"stop":0x080258BC},
- "v2":{"file":"firmware/BF_5RH_501_v2_0_9.dat","spi":0x08031814,"start":0x080317D0,"stop":0x08031918},
+ "v1":{"file":"firmware/BF_5RH_501_v1_1_04.dat","spi":0x080257A0,"start":0x08025770,"stop":0x080258BC,"watchdog":(0x08003860,0x080038CC),"spi_helper":(0x08025748,0x0802576C),"wd_targets":[0x08003874,0x0800387A,0x0800388A,0x0800389A,0x080038A6,0x080038B2]},
+ "v2":{"file":"firmware/BF_5RH_501_v2_0_9.dat","spi":0x08031814,"start":0x080317D0,"stop":0x08031918,"watchdog":(0x08007370,0x080073DC),"spi_helper":(0x080317BC,0x080317E0),"wd_targets":[0x08007380,0x08007386,0x0800739A,0x080073AA,0x080073B6,0x080073C2]},
 }
 WATCHDOG_ADDRESSES={
  0x40003000:"IWDG_KR",
@@ -53,6 +53,12 @@ def main():
                         loc=BASE+i
                         hits.append({"literal":f"0x{loc:08X}","refs":direct_pool_xrefs(p,loc)[:40]})
                 print("MMIO",meaning,f"0x{word:08X}","COUNT",len(hits),"XREFS",hits[:50])
+        for label,region in (("WATCHDOG_WINDOW",info["watchdog"]),("SPI_HELPERS",info["spi_helper"])):
+            for row in inspect_window(p,*region):
+                print(label,row["pc"],row["mnemonic"],row["operands"],row.get("literal_value",""))
+        wd_calls=find_calls(p,info["wd_targets"])
+        for t,refs in wd_calls.items():
+            print("WDT_CALLERS",t,len(refs),[x["call_pc"] for x in refs][:80])
         calls=find_calls(p,[info["spi"]])
         key=f"0x{info['spi']:08X}"
         print("TRANSFER_CALLERS",key,len(calls[key]),[r["call_pc"] for r in calls[key]][:180])
