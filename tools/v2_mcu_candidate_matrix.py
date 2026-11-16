@@ -161,6 +161,23 @@ def analyze(payload: bytes) -> dict:
         "board_package_family": OBSERVED_PACKAGE_FAMILY,
         "board_package_pin_count": OBSERVED_PACKAGE_PIN_COUNT,
         "board_package_source": "user-recounted QFN package with 64 physical terminals",
+        "observed_top_marking_candidate": "XL9951Q",
+        "matching_jlcpcb_catalog_record": {
+            "part_number": "XL9951Q",
+            "jlcpcb_part_number": "C9900238147",
+            "published_package": "QFN-64_8x8",
+            "listed_body_size_mm": [8, 8],
+            "listed_manufacturer_field": "JLCPCB Assembly",
+            "manufacturer_field_is_silicon_vendor_evidence": False,
+            "flash_kib": None,
+            "ram_kib": None,
+            "cpu_core": None,
+            "source": "https://jlcpcb.com/partdetail/JLCPCBAssembly-XL9951Q/C9900238147",
+            "evidence_level": (
+                "independent catalogue confirmation of matching marking and "
+                "package, not a manufacturer datasheet or verified die identification"
+            ),
+        },
         "previous_photo_package_inference": "LQFP64 photo classification was incorrect; QFN64 now confirmed by user",
         "evidence_note": "Original decoded image + user-confirmed and counted QFN64 package; flash source proven by scatterload; memory and peripheral mapping conditional on Cortex-M/STM32-compatible architecture.",
     }
@@ -194,7 +211,7 @@ def analyze(payload: bytes) -> dict:
             "Actual CPUID, AT32 DEBUG_IDCODE PID, project model byte, and Flash size ID",
             "Whether AIR32-compatible SDK code runs on higher-Flash, differently marked silicon",
             "Compatibility of PLL extended bit interpretation with vendor CRM_CFG",
-            "Whether the XL99?1Q top marking is a custom code and its real vendor",
+            "XL9951Q matches JLCPCB catalogue C9900238147 QFN-64_8x8, but die vendor and actual specifications remain unpublished",
             "Actual physical Flash and SRAM boundaries, board wiring and revision",
             "Whether ROM, alias mapping or external NOR contributes to the high Flash-readable window",
         ],
