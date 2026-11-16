@@ -13,8 +13,8 @@ from thumb_callsites import find_calls
 
 BASE=0x08001000
 VERSION={
- "v1":{"file":"firmware/BF_5RH_501_v1_1_04.dat","spi":0x080257A0,"start":0x08025770,"stop":0x080258BC,"watchdog":(0x08003860,0x080038CC),"spi_helper":(0x08025748,0x0802576C),"wd_targets":[0x0800387C,0x0800388C,0x0800389C,0x080038A8,0x080038B4,0x0800AB40,0x0800E070],"wd_wrap":(0x0800AB40,0x0800AB74),"wd_feed":(0x0800E068,0x0800E0A8)},
- "v2":{"file":"firmware/BF_5RH_501_v2_0_9.dat","spi":0x08031814,"start":0x080317D0,"stop":0x08031918,"watchdog":(0x08007370,0x080073DC),"spi_helper":(0x080317BC,0x080317E0),"wd_targets":[0x0800738C,0x0800739C,0x080073AC,0x080073B8,0x080073C4,0x080103CC,0x08013C2C],"wd_wrap":(0x080103CC,0x08010400),"wd_feed":(0x08013C28,0x08013C70)},
+ "v1":{"file":"firmware/BF_5RH_501_v1_1_04.dat","spi":0x080257A0,"start":0x08025770,"stop":0x080258BC,"watchdog":(0x08003860,0x080038CC),"spi_helper":(0x08025748,0x0802576C),"wd_targets":[0x0800387C,0x0800388C,0x0800389C,0x080038A8,0x080038B4,0x0800AB40,0x0800E070],"wd_wrap":(0x0800AB40,0x0800AB74),"wd_feed":(0x0800E05C,0x0800E0A8),"wd_init_calls":((0x08013098,0x080130C0),(0x08006A68,0x08006A96))},
+ "v2":{"file":"firmware/BF_5RH_501_v2_0_9.dat","spi":0x08031814,"start":0x080317D0,"stop":0x08031918,"watchdog":(0x08007370,0x080073DC),"spi_helper":(0x080317BC,0x080317E0),"wd_targets":[0x0800738C,0x0800739C,0x080073AC,0x080073B8,0x080073C4,0x080103CC,0x08013C2C],"wd_wrap":(0x080103CC,0x08010400),"wd_feed":(0x08013C14,0x08013C70),"wd_init_calls":((0x080193D8,0x08019414),(0x0800C0F8,0x0800C128))},
 }
 WATCHDOG_ADDRESSES={
  0x40003000:"IWDG_KR",
@@ -56,6 +56,9 @@ def main():
         for label,region in (("WATCHDOG_WINDOW",info["watchdog"]),("SPI_HELPERS",info["spi_helper"]),("WATCHDOG_CONFIG_WRAPPER",info["wd_wrap"]),("WATCHDOG_FEED_CONTEXT",info["wd_feed"])):
             for row in inspect_window(p,*region):
                 print(label,row["pc"],row["mnemonic"],row["operands"],row.get("literal_value",""))
+        for t0,t1 in info["wd_init_calls"]:
+            for r in inspect_window(p,t0,t1):
+                print("IWDG_CONFIG_CALL_CONTEXT",r["pc"],r["mnemonic"],r["operands"],r.get("literal_value",""))
         wd_calls=find_calls(p,info["wd_targets"])
         for t,refs in wd_calls.items():
             target=int(t,16)
