@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare original UV-5RH Pro V2 instruction evidence to MCU public specifications.
 
-The user has explicitly corrected the physical MCU package to QFN64.
+The user identifies the MCU package as QFN; the exact pad count is unknown.
 Do not infer pad mapping from the former photographed LQFP64 assumption.
 A pass means "not excluded by these tests"; it NEVER identifies the MCU.
 """
@@ -20,8 +20,9 @@ FLASH_BASE = 0x08000000
 # Recovered ARM scatterload descriptor: this flash address is actually read
 # by the startup decompressor, rather than simply being present in a .dat.
 SCATTERLOAD_COMPRESSED_SOURCE = 0x08061A54
-# Corrected explicitly by the owner: actual package QFN-64, NOT LQFP64.
-OBSERVED_PACKAGE = "QFN64"
+# User-confirmed package FAMILY only; no verified pad count.
+OBSERVED_PACKAGE_FAMILY = "QFN"
+OBSERVED_PACKAGE_PIN_COUNT = None
 
 # Memory, USART and packages derived from original manufacturer product pages,
 # not from the ordinary UV-5RH reference firmware. Peripheral versions must
@@ -110,19 +111,24 @@ def compare_spec(spec: dict, evidence: dict) -> dict:
         resource_failures.append("initial MSP and zero region extend beyond specified SRAM")
     if spec["usarts"] < evidence["independent_usart_instances"]:
         resource_failures.append("fewer USART instances than original code initializes")
-    package_mismatch = spec["package"].upper() != evidence["board_package"].upper()
+    published_package = spec["package"].upper()
+    published_family = next((x for x in ("LQFP", "QFN")
+                             if published_package.startswith(x)), None)
+    observed_family = evidence["board_package_family"]
+    package_mismatch = published_family is not None and published_family != observed_family
     if (spec["dma_channels"] is not None and
             spec["dma_channels"] < evidence["highest_dma_channel_candidate"]):
         resource_failures.append("too few DMA channels for the USART2 DMA register usage")
 
     failures = list(resource_failures)
     if package_mismatch:
-        failures.append("published standard package does not match user-confirmed QFN64 MCU")
+        failures.append("published standard package family differs from user-confirmed QFN")
     return {
         "part": spec["part"],
         "status": "published_standard_part_mismatch" if failures else "not_excluded_not_identified",
         "resource_status": "published_resource_mismatch" if resource_failures else "resource_compatible_not_identified",
-        "package_status": "published_package_mismatch" if package_mismatch else "published_package_compatible",
+        "package_status": ("published_package_family_mismatch" if package_mismatch
+                           else "published_package_family_compatible_pin_count_unknown"),
         "resource_failures": resource_failures,
         "failures": failures,
         "official_spec": spec,
@@ -149,10 +155,11 @@ def analyze(payload: bytes) -> dict:
         "independent_usart_instances": len(usarts),
         "original_code_usart_instances": sorted(usarts),
         "highest_dma_channel_candidate": 6,
-        "board_package": OBSERVED_PACKAGE,
-        "board_package_source": "user explicit correction: QFN-64, not LQFP64", 
-        "previous_photo_package_inference": "LQFP64 was incorrect and is superseded",
-        "evidence_note": "Original decoded image + user-corrected QFN64; flash source proven by scatterload; memory and peripheral mapping conditional on Cortex-M/STM32-compatible architecture.",
+        "board_package_family": OBSERVED_PACKAGE_FAMILY,
+        "board_package_pin_count": OBSERVED_PACKAGE_PIN_COUNT,
+        "board_package_source": "user clarification: QFN confirmed; number of pads unknown",
+        "previous_photo_package_inference": "LQFP64 and later QFN64 assumptions both superseded",
+        "evidence_note": "Original decoded image + user-confirmed QFN family, unknown pad count; flash source proven by scatterload; memory and peripheral mapping conditional on Cortex-M/STM32-compatible architecture.",
     }
     if not memory["data_then_zero_contiguous"] or not memory["last_region_end_equals_initial_msp"]:
         raise ValueError("V2 scatterload RAM data no longer matches initial MSP")
@@ -165,18 +172,20 @@ def analyze(payload: bytes) -> dict:
             "the high 0x08061A54 startup source is directly mapped program Flash. "
             "A mismatch is a published-SKU conflict, not a proof that an OEM "
             "version or remapped flash architecture cannot execute this firmware. "
-            "The device package is QFN64 per owner correction. Prior LQFP64-based "
-            "candidate shortlists were invalid. Neither passing resource checks "
-            "nor matching a published package identifies the silicon manufacturer."
+            "Only the device's QFN package family is confirmed; its pad count "
+            "is unknown. Prior LQFP64 and QFN64 pin-count assumptions were "
+            "invalid. Package-family matches do not establish pin-count "
+            "or device identity."
         ),
         "lineage_vs_hardware": {
             "sdk_family": "AIR32F103 / MH32F103A / MH2103A compatible code signature",
             "physical_mcu": "unidentified",
             "important_conflict": (
                 "Published AIR32F103RPT6 and MH2103ARPT6 are both "
-                "LQFP64 / 256KiB flash, both conflicting with QFN64 and the "
-                "high Flash address. The MH2103A family has 512KiB/1024KiB "
-                "LQFP100/LQFP144 parts, not documented QFN64 equivalents."
+                "LQFP64 / 256KiB flash, conflicting with the confirmed QFN "
+                "package family and the high Flash address. Higher capacity "
+                "standard MH2103A packages in the checked catalog are LQFP, "
+                "but the board's QFN pad count is not known."
             ),
         },
         "unresolved": [
