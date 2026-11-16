@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 from mcu_fingerprint import decoded_payload
@@ -111,14 +112,15 @@ def compare_spec(spec: dict, evidence: dict) -> dict:
         resource_failures.append("initial MSP and zero region extend beyond specified SRAM")
     if spec["usarts"] < evidence["independent_usart_instances"]:
         resource_failures.append("fewer USART instances than original code initializes")
-    published_package = spec["package"].upper()
-    published_family = next((x for x in ("LQFP", "QFN")
-                             if published_package.startswith(x)), None)
-    observed_family = evidence["board_package_family"]
-    observed_pins = evidence["board_package_pin_count"]
-    published_pins = int("".join(ch for ch in published_package if ch.isdigit()))
-    package_mismatch = (published_family != observed_family or
-                        published_pins != observed_pins)
+    # A label like QFN-64_8x8 contains 64 pins; 8x8 is body size, not pins.
+    package_match = re.match(r"^(LQFP|QFN)[-_]?(\d+)(?:[_-]|$)", spec["package"].upper())
+    if package_match is None:
+        raise ValueError(f"unsupported published package format: {spec['package']}")
+    published_family, count = package_match.groups()
+    package_mismatch = (
+        published_family != evidence["board_package_family"]
+        or int(count) != evidence["board_package_pin_count"]
+    )
     if (spec["dma_channels"] is not None and
             spec["dma_channels"] < evidence["highest_dma_channel_candidate"]):
         resource_failures.append("too few DMA channels for the USART2 DMA register usage")
