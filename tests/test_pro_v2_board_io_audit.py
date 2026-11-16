@@ -24,7 +24,7 @@ class ProBoardOriginalCodeTests(unittest.TestCase):
     def test_cross_version_gpio_and_device_address_instruction_sites(self):
         result = analyze(self.v1, self.v2)
         self.assertGreaterEqual(result["v1_instruction_check"]["total"], 39)
-        self.assertGreaterEqual(result["v2_instruction_check"]["total"], 40)
+        self.assertGreaterEqual(result["v2_instruction_check"]["total"], 60)
         self.assertEqual(result["interface_candidates"]["fd6818"]["write_byte"], "0xE2")
         self.assertEqual(result["interface_candidates"]["rda5807m"]["write_byte"], "0x22")
         self.assertEqual(result["interface_candidates"]["fd6818"]["gpio_software_sda"], "PC15")
@@ -80,6 +80,38 @@ class ProBoardOriginalCodeTests(unittest.TestCase):
     def test_fm_gpio_clock_pin_mutation_detected(self):
         with self.assertRaises(ValueError):
             verify_version(self.corrupt(self.v2, 0x08030F92), "v2")
+
+    def test_lcd_spi2_window_and_rgb565_scanout_evidence(self):
+        result = analyze(self.v1, self.v2)
+        lcd = result["lcd"]
+        self.assertEqual(lcd["spi_compatible_register_base"], "0x40003800")
+        self.assertEqual(lcd["software_width_px"], 160)
+        self.assertEqual(lcd["software_height_px"], 128)
+        self.assertEqual(lcd["software_row_stride_bytes"], 320)
+        self.assertEqual(lcd["software_framebuffer_end_exclusive"], "0x2000EB76")
+        self.assertEqual(lcd["between_buffer_gap_bytes"], 18)
+        self.assertTrue(lcd["rgb565_big_endian_on_wire"])
+        self.assertTrue(lcd["physical_panel_rotation_unverified"])
+
+    def test_spi2_command_literal_mutation_detected(self):
+        with self.assertRaises(ValueError):
+            verify_version(self.corrupt(self.v2, 0x08007554), "v2")
+
+    def test_spi2_data_gpio_literal_mutation_detected(self):
+        with self.assertRaises(ValueError):
+            verify_version(self.corrupt(self.v2, 0x08007580), "v2")
+
+    def test_lcd_buffer_literal_mutation_detected(self):
+        with self.assertRaises(ValueError):
+            verify_version(self.corrupt(self.v2, 0x080153B0), "v2")
+
+    def test_lcd_rgb565_stride_mutation_detected(self):
+        with self.assertRaises(ValueError):
+            verify_version(self.corrupt(self.v2, 0x0801527E), "v2")
+
+    def test_lcd_window_command_mutation_detected(self):
+        with self.assertRaises(ValueError):
+            verify_version(self.corrupt(self.v2, 0x0801535A), "v2")
 
     def test_documented_keypad_evidence_is_measurable_not_labeled(self):
         evidence = analyze(self.v1, self.v2)
