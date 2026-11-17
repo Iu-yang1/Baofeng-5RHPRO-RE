@@ -47,3 +47,14 @@ jobs:
         run: python scripts/pro_v2_menu_sram_nor_xrefs.py --kind nor-callers --max-each 8
       - name: Audio/PB6 callsite neighborhoods
         run: python scripts/pro_v2_menu_sram_nor_xrefs.py --kind mode-callers --max-each 20
+      - name: Working config SRAM owner callchains
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus menu_ram_owner_a --max-lines 160
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus menu_ram_owner_b --max-lines 100
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus menu_ram_owner_c --max-lines 180
+      - name: NV flash journal original function
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus nv_transactions --max-lines 150
+      - name: RX AF and RFIC continuation
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus tx_audio_tail --max-lines 170
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus rx_audio_paths --max-lines 180
