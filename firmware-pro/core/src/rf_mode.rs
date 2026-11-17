@@ -50,10 +50,10 @@ mod tests {
     #[test]
     fn arbitrary_live_mapping_is_not_inferred_from_reset_zeroes() {
         let runtime_map = OemRuntimeModeLookup::new(&[2, 0, 3, 1]);
-        assert_eq!(runtime_map.trim_index(0), 2);
-        assert_eq!(runtime_map.trim_index(1), 0);
-        assert_eq!(runtime_map.trim_index(2), 3);
-        assert_eq!(runtime_map.trim_index(3), 1);
+        assert_eq!(runtime_map.trim_index(0), Some(2));
+        assert_eq!(runtime_map.trim_index(1), Some(0));
+        assert_eq!(runtime_map.trim_index(2), Some(3));
+        assert_eq!(runtime_map.trim_index(3), Some(1));
         assert_eq!(runtime_map.trim_index(4), None);
         assert_eq!(OemRuntimeModeLookup::new(&[]).trim_index(0), None);
     }
@@ -106,9 +106,9 @@ mod original_rf_window_tests {
         for hz in [130_000_000u64, 175_000_000, 349_000_000, 399_500_000, 550_000_000] {
             assert_eq!(oem_trim_slot_for_raw_word((hz / 10) as u32), 0);
         }
-        assert_eq!(oem_trim_slot_for_raw_word(145_500_000 / 10), Some(0));
-        assert_eq!(oem_trim_slot_for_raw_word(230_000_000 / 10), Some(1));
-        assert_eq!(oem_trim_slot_for_raw_word(370_000_000 / 10), Some(2));
-        assert_eq!(oem_trim_slot_for_raw_word(435_000_000 / 10), Some(3));
+        assert_eq!(oem_trim_slot_for_raw_word(145_500_000 / 10), 0);
+        assert_eq!(oem_trim_slot_for_raw_word(230_000_000 / 10), 1);
+        assert_eq!(oem_trim_slot_for_raw_word(370_000_000 / 10), 2);
+        assert_eq!(oem_trim_slot_for_raw_word(435_000_000 / 10), 3);
     }
 }
