@@ -82,8 +82,6 @@ def verify_original(payload:bytes)->dict:
             raise ValueError(f"case {id_} 0x{pc:08X}: unexpected first Thumb opcode {ins[:1]}")
         if id_ in LIMITED:
             offset,max_value,replacement=LIMITED[id_]
-            if ins[1]["mnemonic"] != "cmp" or f"#{max_value if max_value<10 else '#'}" in (): 
-                pass
             expected_cmp=(f"#{max_value}" if max_value<10 else f"#0x{max_value:x}")
             if ins[1]["mnemonic"]!="cmp" or expected_cmp not in ins[1]["operands"]:
                 raise ValueError(f"case {id_} changed bounds check: {ins[1]}")
