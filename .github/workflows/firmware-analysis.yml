@@ -59,6 +59,9 @@ jobs:
         run: |
           python -m py_compile scripts/pro_v2_full_board_scout.py
           python tools/pro_v2_full_board_audit.py --json > pro-v2-deep-board-evidence.json
+      - name: Verify V2 calibration NV SPI3 read transaction
+        run: |
+          python tools/pro_v2_spi3_nv_read_audit.py --json > pro-v2-spi3-nv-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -74,4 +77,5 @@ jobs:
             pro-v2-board-io-evidence.json
             pro-v2-rf-ui-flow-evidence.json
             pro-v2-deep-board-evidence.json
+            pro-v2-spi3-nv-evidence.json
           if-no-files-found: error
