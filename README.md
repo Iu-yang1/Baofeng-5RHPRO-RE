@@ -489,3 +489,12 @@ logical `0xC5C0` and two caller-selected `0x82`-byte opaque profiles
 by original software index before writing the FD6818 `0x39/0x38` word.
 The physical nonvolatile device, per-radio values, real mode-to-band
 mapping, PA/PTT wiring and XL9951Q MCU port remain unidentified.
+
+
+The V2 NV read routine is further decoded down to the actual
+**SPI3 NOR `0x03` + 24-bit address + `0xFF` read transaction**, with
+software GPIOA15 chip select and byte-exchange calls to `0x08031814`.
+The new read-only `core/src/spi3_nv.rs` transport and
+`tools/pro_v2_spi3_nv_read_audit.py` verify this contract. It does not
+identify the external NOR die or physical XL9951Q QFN pad. See the
+[updated evidence report](docs/pro-v2-nv-calibration-pipeline.zh-CN.md).
