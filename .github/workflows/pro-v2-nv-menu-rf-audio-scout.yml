@@ -58,3 +58,10 @@ jobs:
         run: |
           python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus tx_audio_tail --max-lines 170
           python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus rx_audio_paths --max-lines 180
+      - name: Config setter 61-way dispatcher and real case branches
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_setter_dispatch --max-lines 45
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_setter_cases --max-lines 290
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_setter_tail --max-lines 100
+      - name: Config restore 0x7980 and 0x7A80 tail
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_restore_tail --max-lines 170
