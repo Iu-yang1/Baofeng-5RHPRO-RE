@@ -40,6 +40,30 @@ pub const fn oem_tuning_add(raw_table_word: u32, correction_word: u32) -> u32 {
     raw_table_word.wrapping_add(correction_word)
 }
 
+
+/// FD6818 REV.1.0.0 programming guide: one raw frequency unit = 10 Hz.
+/// The 0x39/0x38 register layout is independently present in the OEM V2
+/// application; OEM calibration tables and real RF accuracy are still unknown.
+pub const FREQUENCY_QUANTUM_HZ: u64 = 10;
+pub const OEM_RX_STATE_WORD: u16 = 0xBFF1;
+pub const OEM_TX_STATE_WORD: u16 = 0xC1FE;
+
+/// Round to the nearest 10 Hz, permitting the chip's full 32-bit tuning range.
+/// Returns None only if the requested word exceeds the representable range.
+pub const fn frequency_hz_to_word(frequency_hz: u64) -> Option<u32> {
+    let word = frequency_hz / FREQUENCY_QUANTUM_HZ
+        + if frequency_hz % FREQUENCY_QUANTUM_HZ >= 5 { 1 } else { 0 };
+    if word > u32::MAX as u64 { None } else { Some(word as u32) }
+}
+
+/// This selects only the FD6818's on-chip RF state word. It does NOT
+/// establish board PA bias/PTT, antenna switch or actual radiated power.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RficState { Idle, Receive, Transmit }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FrequencyWriteError<E> { UnrepresentableFrequency, Bus(E) }
+
 pub struct Fd6818<B> {
     bus: B,
 }
@@ -94,6 +118,30 @@ impl<B: I2cRegisterBus> Fd6818<B> {
         correction_word: u32,
     ) -> Result<(), B::Error> {
         self.write_frequency_word(oem_tuning_add(raw_table_word, correction_word))
+    }
+
+    /// Datasheet-compatible 10 Hz frequency encoding, then OEM high/low
+    /// register write order. This is not a substitute for board calibration.
+    pub fn write_frequency_hz(
+        &mut self,
+        frequency_hz: u64,
+    ) -> Result<(), FrequencyWriteError<B::Error>> {
+        let word = frequency_hz_to_word(frequency_hz)
+            .ok_or(FrequencyWriteError::UnrepresentableFrequency)?;
+        self.write_frequency_word(word).map_err(FrequencyWriteError::Bus)
+    }
+
+    /// OEM V2 state values cross-check the FD6818 programming guide:
+    /// idle=0, RX=0xBFF1, TX=0xC1FE, all at OEM register 0x30.
+    /// Neither TX path nor board PA enable is implied by this isolated call.
+    pub fn select_rfic_state(&mut self, state: RficState) -> Result<(), B::Error> {
+        self.write_register(REG_STATE, 0x0000)?;
+        let value = match state {
+            RficState::Idle => return Ok(()),
+            RficState::Receive => OEM_RX_STATE_WORD,
+            RficState::Transmit => OEM_TX_STATE_WORD,
+        };
+        self.write_register(REG_STATE, value)
     }
 
     pub fn into_bus(self) -> B {
@@ -234,6 +282,60 @@ mod tests {
             (0x71, std::vec![0x39, 0, 0]),
             (0x71, std::vec![0x38, 0, 0x20]),
         ]);
+    }
+
+
+    #[test]
+    fn fd6818_guide_frequency_example_is_409_75_mhz() {
+        assert_eq!(frequency_hz_to_word(409_750_000), Some(0x0271_3A98));
+        assert_eq!(frequency_hz_to_word(145_500_000), Some(14_550_000));
+        assert_eq!(frequency_hz_to_word(145_500_004), Some(14_550_000));
+        assert_eq!(frequency_hz_to_word(145_500_005), Some(14_550_001));
+        assert_eq!(frequency_hz_to_word(u32::MAX as u64 * 10), Some(u32::MAX));
+        assert_eq!(frequency_hz_to_word(u32::MAX as u64 * 10 + 5), None);
+    }
+
+    #[test]
+    fn fd6818_hz_tuning_emits_oem_high_word_before_low_word() {
+        let mut rf = Fd6818::new(Recorder::default());
+        assert_eq!(rf.write_frequency_hz(409_750_000), Ok(()));
+        assert_eq!(rf.into_bus().writes, std::vec![
+            (0x71, std::vec![0x39, 0x02, 0x71]),
+            (0x71, std::vec![0x38, 0x3A, 0x98]),
+        ]);
+    }
+
+    #[test]
+    fn fd6818_rfic_state_words_do_not_assume_external_pa_gpio() {
+        for (state, word) in [
+            (RficState::Receive, 0xBFF1u16),
+            (RficState::Transmit, 0xC1FEu16),
+        ] {
+            let mut rf = Fd6818::new(Recorder::default());
+            rf.select_rfic_state(state).unwrap();
+            assert_eq!(rf.into_bus().writes, std::vec![
+                (0x71, std::vec![0x30, 0x00, 0x00]),
+                (0x71, std::vec![0x30, (word >> 8) as u8, word as u8]),
+            ]);
+        }
+        let mut rf = Fd6818::new(Recorder::default());
+        rf.select_rfic_state(RficState::Idle).unwrap();
+        assert_eq!(rf.into_bus().writes,
+                   std::vec![(0x71, std::vec![0x30, 0x00, 0x00])]);
+    }
+
+    #[test]
+    fn frequency_write_error_and_state_bus_failure_are_propagated() {
+        let mut rf = Fd6818::new(Recorder::default());
+        assert_eq!(rf.write_frequency_hz(u64::MAX),
+                   Err(FrequencyWriteError::UnrepresentableFrequency));
+        assert!(rf.into_bus().writes.is_empty());
+
+        let mut rf = Fd6818::new(Recorder {
+            fail_on_call: Some(2), ..Recorder::default()
+        });
+        assert_eq!(rf.select_rfic_state(RficState::Transmit), Err("failed transaction"));
+        assert_eq!(rf.into_bus().writes.len(), 1);
     }
 
 }
