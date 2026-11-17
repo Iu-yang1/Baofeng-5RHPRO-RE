@@ -142,11 +142,13 @@ def verify_original(payload: bytes) -> dict:
     for name, rows in (("gamma_positive",GAMMA_POS_SITES),
                        ("gamma_negative",GAMMA_NEG_SITES)):
         for pc, value in rows:
-            check_site(payload, pc, "movs", f"r0, #{value:#x}")
+            immediate = str(value) if value < 10 else f"0x{value:x}"
+            check_site(payload, pc, "movs", f"r0, #{immediate}")
             check_site(payload, pc + 2, "bl", "#0x800755c")
         counts[name] = len(rows)*2
     for pc, command in LCD_COMMAND_SITES:
-        check_site(payload, pc, "movs", f"r0, #{command:#x}")
+        immediate = str(command) if command < 10 else f"0x{command:x}"
+        check_site(payload, pc, "movs", f"r0, #{immediate}")
         check_site(payload, pc+2, "bl", "#0x800752c")
     counts["lcd_setup_commands"] = len(LCD_COMMAND_SITES)*2
     return counts
