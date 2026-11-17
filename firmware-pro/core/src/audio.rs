@@ -64,6 +64,24 @@ impl OriginalAudioCache {
         Ok(reg50)
     }
 
+    /// OEM 0x0800A354..0x0800A37C: nonzero branch of an audio
+    /// option helper. Read REG43, clear raw bits 0x7E00, write it back,
+    /// then write REG13=0x03FF. Physical mute/mic meaning unknown.
+    pub fn apply_oem_af_nonzero_subpath<B: I2cRegisterBus>(
+        &mut self,
+        rf: &mut Fd6818<B>,
+    ) -> Result<(), B::Error> {
+        let reg43=rf.read_register(0x43)?;
+        rf.write_register(0x43,reg43 & !0x7E00)?;
+        rf.write_register(0x13,0x03FF)
+    }
+
+    /// OEM 0x0800A37E has a separate zero-input branch: it writes
+    /// 0x6042 into cached REG47 and invokes 0x0800B51C(0) before
+    /// apply_mode(0). The external helper remains opaque; do not
+    /// silently implement only a subset and call it a full AF reset.
+    pub const OEM_AF_ZERO_BRANCH_CACHED_REG47:u16=0x6042;
+
     /// Original 0x0800A398..0x0800A3A8 toggles raw register 0x43
     /// between these two control words. Physical audio meaning unknown.
     pub fn apply_reg43_variant<B: I2cRegisterBus>(
@@ -161,6 +179,35 @@ mod tests {
         assert_eq!(bus.attempts,3);
         assert_eq!(bus.packets.len(),2);
         assert_eq!(audio.reg47,0x0100);
+    }
+
+    #[test]
+    fn original_audio_option_nonzero_path_reads_modifies_writes_exact_registers() {
+        struct ReadBus {
+            writes:std::vec::Vec<std::vec::Vec<u8>>, value:u16, fail_write:bool,
+        }
+        impl I2cRegisterBus for ReadBus {
+            type Error=&'static str;
+            fn write(&mut self,_:u8,b:&[u8])->Result<(),Self::Error>{
+                if self.fail_write {return Err("write");}
+                self.writes.push(b.to_vec());Ok(())
+            }
+            fn write_read(&mut self,address:u8,command:&[u8],response:&mut [u8])
+                ->Result<(),Self::Error>{
+                assert_eq!(address,0x71);assert_eq!(command,[0x43]);
+                response.copy_from_slice(&self.value.to_be_bytes());Ok(())
+            }
+        }
+        let mut audio=OriginalAudioCache::new(0,0);
+        let mut rf=Fd6818::new(ReadBus {
+            writes:std::vec::Vec::new(),value:0xFFFF,fail_write:false,
+        });
+        audio.apply_oem_af_nonzero_subpath(&mut rf).unwrap();
+        assert_eq!(rf.into_bus().writes,std::vec![
+            std::vec![0x43,0x81,0xFF],
+            std::vec![0x13,0x03,0xFF],
+        ]);
+        assert_eq!(OriginalAudioCache::OEM_AF_ZERO_BRANCH_CACHED_REG47,0x6042);
     }
 
     #[test]
