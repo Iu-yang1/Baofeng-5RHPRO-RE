@@ -51,7 +51,7 @@ pub const fn original_nv_address(id:u8) -> Option<u32> {
         11 => 0x7990, 12 => 0x7991, 13 => 0x7992,
         14 => 0x7993, 15 => 0x7994, 16 => 0x799A,
         17 => 0x7988, 18 => 0x7989,
-        19 => 0x79B0, 20 => 0x79B1, 21 => 0x79B2,
+        19 => 0x79B0, 20 => 0x79B2, 21 => 0x79B1,
         22 => 0x79B3,
         // Source 0x080165B0 falls through with default r1=0.
         // The startup loader restores b[32] from 0x799B instead.
