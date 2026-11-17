@@ -1,0 +1,81 @@
+//! OEM V2 RF-adjacent 0x82-byte nonvolatile record transport.
+//!
+//! This is the recovered record *format and copy*, not proof that the
+//! 64 halfwords are physical VCO/RSSI/power calibration coefficients.
+//! Actual values are stored on a radio and absent from the upgrade image.
+
+pub const OEM_NV_RECORD_BYTES: usize = 0x82;
+pub const OEM_NV_HALFWORDS: usize = 0x40;
+pub const OEM_NV_INDEX_BASE: u32 = 0x7A90;
+pub const OEM_NV_INDEX_STRIDE: u32 = 0x98;
+pub const OEM_NV_REFERENCE_HEADER_ADDRESS: u32 = 0x7982;
+pub const OEM_SRAM_RECORD_BASE: u32 = 0x2000_246C;
+pub const OEM_SRAM_RECORD_COUNT_ADDRESS: u32 = OEM_SRAM_RECORD_BASE + 0x10;
+pub const OEM_SRAM_RECORD_VALUES_ADDRESS: u32 = OEM_SRAM_RECORD_BASE + 0x12;
+
+/// Mode index originates from original V2 configuration selectors 2/3.
+pub const fn nv_record_address(selector: u8) -> u32 {
+    OEM_NV_INDEX_BASE + OEM_NV_INDEX_STRIDE * selector as u32
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RawNvRfRecord {
+    /// Original two header bytes are retained; software interpretation unknown.
+    pub raw_header: [u8; 2],
+    pub values: [u16; OEM_NV_HALFWORDS],
+}
+impl RawNvRfRecord {
+    /// OEM 0x08012CD6..0x08012CF6 copies 64 big-endian words from +2.
+    /// The unpacked array is host-endian but not interpreted as Hz or power.
+    pub fn from_original_bytes(original: &[u8; OEM_NV_RECORD_BYTES]) -> Self {
+        let mut values = [0u16; OEM_NV_HALFWORDS];
+        let mut i = 0;
+        while i < OEM_NV_HALFWORDS {
+            values[i] = u16::from_be_bytes([original[2 + i*2], original[3 + i*2]]);
+            i += 1;
+        }
+        Self {
+            raw_header: [original[0], original[1]],
+            values,
+        }
+    }
+}
+
+/// Four original constants at 0x0800A6CA..0x0800A6DC are copied to
+/// SRAM 0x200102B0. Their physical interpretation remains unverified.
+pub const OEM_RF_WORKING_WORDS: [u32;4] = [
+    0x002F_03E7, 0x002F_1786, 0x002F_2343, 0x002F_31E1,
+];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn original_mode_record_addresses_retain_eeprom_stride() {
+        assert_eq!(nv_record_address(2), 0x7BC0);
+        assert_eq!(nv_record_address(3), 0x7C58);
+        assert_eq!(OEM_NV_REFERENCE_HEADER_ADDRESS, 0x7982);
+        assert_eq!(OEM_SRAM_RECORD_VALUES_ADDRESS, 0x2000_247E);
+    }
+    #[test]
+    fn record_copies_all_64_original_big_endian_words_from_plus_two() {
+        let mut input = [0u8; OEM_NV_RECORD_BYTES];
+        input[0] = 0xA5;
+        input[1] = 0x5A;
+        for i in 0..64 {
+            input[2 + i*2] = i as u8;
+            input[3 + i*2] = (255 - i) as u8;
+        }
+        let record = RawNvRfRecord::from_original_bytes(&input);
+        assert_eq!(record.raw_header, [0xA5,0x5A]);
+        assert_eq!(record.values[0], 0x00FF);
+        assert_eq!(record.values[63], 0x3FC0);
+        assert_eq!(record.values.len(), 64);
+    }
+    #[test]
+    fn four_stock_working_values_are_raw_not_frequency_hz() {
+        assert_eq!(OEM_RF_WORKING_WORDS, [
+            0x002F03E7,0x002F1786,0x002F2343,0x002F31E1,
+        ]);
+    }
+}
