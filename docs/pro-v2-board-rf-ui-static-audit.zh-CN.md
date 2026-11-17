@@ -86,3 +86,8 @@ cargo check --manifest-path firmware-pro/core/Cargo.toml --lib --offline
 ```
 
 脚本验证 V1/V2 各自原厂 Thumb 指令与文字池，并实际解压 V2 scatterload SRAM 样本来匹配22项键码。CI 保存结构化证据 JSON，不上传替代固件镜像；测试包含原厂指令/常量变异负例、Rust 键码、FD6818 与广播 I²C 总线模拟、LCD 图像坐标与帧扫描测试。
+
+
+## 2026-11-17 后续进展
+
+已新增 [原厂 RFIC 调谐字、RX/TX 状态字和 UI 事件路径研究](pro-v2-rf-tuning-state-ui-flow.zh-CN.md)：V2 原始 `0x2000246C` 调谐字查询、32-bit 补偿相加到寄存器 `0x39/0x38`，以及写入 `0x30` 的 `0xBFF1/0xC1FE` RX/TX 状态字，现均有机器码断言。FD6818 编程指南对照建立 10 Hz/word 的编码接口，但运行期校准表仍待核查；实体 PTT/PA、按键帽标签、LCD 完整 UI 与真实 QFN64 HAL 仍未完成。

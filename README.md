@@ -184,6 +184,29 @@ python tools/pro_v2_board_io_audit.py --json
 cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
 ```
 
+### Pro FD6818: OEM raw tuning flow and guide-backed 10 Hz encoding
+
+The [new RFIC tuning/state and UI call-flow analysis (中文)](docs/pro-v2-rf-tuning-state-ui-flow.zh-CN.md)
+reconstructs original V2 raw-tune selection from `0x2000246C`,
+32-bit wrapping correction, and the high/low split into `0x39/0x38`.
+The FD6818 REV.1.0.0 programming guide explicitly defines **10 Hz
+per tuning-word unit**, matching those stock registers. The V2 firmware
+also uses `0xBFF1` / `0xC1FE` as RFIC RX/TX state values written to its
+OEM **`0x30`** register; the guide names `0x03` for the equivalent
+state, so this firmware preserves the OEM map.
+
+The independent `firmware-pro/core/src/fd6818.rs` now exposes
+guide-backed Hz encoding, original raw adjustment, tested RX/TX chip
+state commands, and the OEM setup-prefix register sequence. **These are
+RFIC logic operations, not verified board PTT, PA or RF output.** The
+22-key scanner's key-event consumers are identified, but physical
+legends and complete UI behavior remain unverified.
+
+```sh
+python tools/pro_v2_rf_ui_flow_audit.py --json
+cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**

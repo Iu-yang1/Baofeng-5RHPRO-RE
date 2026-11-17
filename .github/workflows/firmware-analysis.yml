@@ -51,6 +51,10 @@ jobs:
       - name: Verify V1/V2 OEM board RF and UI static evidence
         run: |
           python tools/pro_v2_board_io_audit.py --json > pro-v2-board-io-evidence.json
+      - name: Verify original V2 RF tune and UI event call flow
+        run: |
+          python -m py_compile scripts/pro_v2_rf_ui_scout.py
+          python tools/pro_v2_rf_ui_flow_audit.py --json > pro-v2-rf-ui-flow-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -64,4 +68,5 @@ jobs:
             xl9951q-reset-nor-error-evidence.json
             xl9951q-spi-wdt-integrity-evidence.json
             pro-v2-board-io-evidence.json
+            pro-v2-rf-ui-flow-evidence.json
           if-no-files-found: error
