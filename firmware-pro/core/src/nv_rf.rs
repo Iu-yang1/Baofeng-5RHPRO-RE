@@ -41,6 +41,39 @@ impl RawNvRfRecord {
     }
 }
 
+
+/// V2 0x08012BB8 reads four per-mode RF frequency trim bytes at 0xC5C0.
+/// 0x08012BD0..0x08012BF0 converts each to a signed 32-bit correction.
+/// This is independently consumed by 0x0800DDB8 / 0x0800AFF0.
+pub const OEM_FREQUENCY_TRIM_NV_ADDRESS: u32 = 0xC5C0;
+pub const OEM_FREQUENCY_TRIM_COUNT: usize = 4;
+pub const OEM_FREQUENCY_TRIM_NEUTRAL_BYTE: u8 = 0x28;
+pub const OEM_FREQUENCY_TRIM_MAX_RAW_BYTE: u8 = 0x60;
+pub const OEM_FREQUENCY_TRIM_UNITS_PER_BYTE: i32 = 5;
+pub const OEM_FREQUENCY_TRIM_HZ_PER_BYTE: i32 = 50;
+
+/// Convert an original EEPROM trim byte to an additive raw 10-Hz word.
+/// Values > 0x60 are overwritten with 0x28 by stock code; values < 0x28
+/// produce negative corrections, stored as 32-bit two's complement.
+pub const fn original_trim_word(value: u8) -> u32 {
+    let normalized = if value > OEM_FREQUENCY_TRIM_MAX_RAW_BYTE {
+        OEM_FREQUENCY_TRIM_NEUTRAL_BYTE
+    } else { value };
+    ((normalized as i32 - OEM_FREQUENCY_TRIM_NEUTRAL_BYTE as i32)
+        * OEM_FREQUENCY_TRIM_UNITS_PER_BYTE) as u32
+}
+pub const fn original_trim_hz(value: u8) -> i32 {
+    original_trim_word(value) as i32 * 10
+}
+pub const fn original_trim_bank(values: [u8;4]) -> [u32;4] {
+    [
+        original_trim_word(values[0]),
+        original_trim_word(values[1]),
+        original_trim_word(values[2]),
+        original_trim_word(values[3]),
+    ]
+}
+
 /// Four original constants at 0x0800A6CA..0x0800A6DC are copied to
 /// SRAM 0x200102B0. Their physical interpretation remains unverified.
 pub const OEM_RF_WORKING_WORDS: [u32;4] = [
@@ -78,4 +111,20 @@ mod tests {
             0x002F03E7,0x002F1786,0x002F2343,0x002F31E1,
         ]);
     }
+
+    #[test]
+    fn four_oem_trim_bytes_use_signed_fifty_hz_steps() {
+        assert_eq!(OEM_FREQUENCY_TRIM_NV_ADDRESS,0xC5C0);
+        assert_eq!(original_trim_word(0x28),0);
+        assert_eq!(original_trim_word(0x29),5);
+        assert_eq!(original_trim_hz(0x29),50);
+        assert_eq!(original_trim_word(0x60),280);
+        assert_eq!(original_trim_hz(0x60),2800);
+        assert_eq!(original_trim_word(0x61),0);
+        assert_eq!(original_trim_word(0),(-200i32) as u32);
+        assert_eq!(original_trim_hz(0),-2000);
+        assert_eq!(original_trim_bank([0x28,0x29,0x60,0]),
+                   [0,5,280,(-200i32) as u32]);
+    }
+
 }
