@@ -32,6 +32,7 @@ V2_WRITER_SITES = (
     (0x08031B0E, "ldr", "r1, [pc", BIAS_AND_WIDTHS[0][0]),
     (0x08031B10, "ldr.w", "lr, [pc", BIAS_AND_WIDTHS[0][1]),
     (0x08031B1A, "movs", "r7, #0", None),
+    (0x08031B1A, "movs", "r7, #0", None),
     (0x08031B22, "strb", "r7, [r1, r0]", None),
     (0x08031B3A, "ldr.w", "ip, [pc", BIAS_AND_WIDTHS[1][0]),
     (0x08031B3E, "ldr.w", "lr, [pc", BIAS_AND_WIDTHS[1][1]),
@@ -45,6 +46,8 @@ V2_WRITER_SITES = (
     (0x08031B74, "ldr.w", "lr, [pc", BIAS_AND_WIDTHS[3][1]),
     (0x08031B7E, "movs", "r7, #3", None),
     (0x08031B80, "strb", "r7, [r1, r0]", None),
+    (0x08031B7C, "bhi", "#0x8031ba2", None),
+    (0x08031BA2, "strb", "r7, [r1, r0]", None),
 )
 
 
@@ -92,6 +95,8 @@ def verify_original(v1: bytes,v2: bytes) -> dict:
         "v2_mode_writer_entry":"0x08031AEC",
         "v2_writer_verified_sites":len(V2_WRITER_SITES),
         "software_frequency_windows":windows,
+        "out_of_window_fallback_trim_slot":0,
+        "fallback_branch":"0x08031B7C -> 0x08031BA2 (preserves initial R7=0)",
         "runtime_map_base":"0x20000072",
         "rf_physical_bandpass_pa_switch_gpio_proven":False,
         "mcu_chip_identified":False,
