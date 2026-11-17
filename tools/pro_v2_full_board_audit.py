@@ -88,7 +88,9 @@ FIXED = {
     ),
     "key_settings_bridge": (
         (0x08010B46,"cmp","r4, #0x13",None),
+        (0x08010B48,"beq","#0x8010b50",None),
         (0x08010B4A,"cmp","r4, #0x14",None),
+        (0x08010B4C,"beq","#0x8010bb4",None),
         (0x08010B50,"movs","r0, #0x13",None),
         (0x08010B52,"bl","#0x800e454",None),
         (0x08010B58,"movs","r0, #0x14",None),
