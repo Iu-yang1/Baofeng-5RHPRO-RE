@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from mcu_fingerprint import decoded_payload
 from thumb_window import inspect_window
 from thumb_callsites import find_calls
