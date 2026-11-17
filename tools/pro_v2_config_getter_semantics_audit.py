@@ -60,12 +60,42 @@ READ_LITERAL_SITES=[
     (0x0800E482,"tbb","[pc, ip]",None),
 ]
 
+EVENT_BRANCH_SITES=[
+    (0x08010B46,"cmp","r4, #0x13",None),
+    (0x08010B4A,"cmp","r4, #0x14",None),
+    (0x08010B50,"movs","r0, #0x13",None),
+    (0x08010B52,"bl","#0x800e454",None),
+    (0x08010B58,"movs","r0, #0x14",None),
+    (0x08010B5A,"bl","#0x800e454",None),
+    (0x08010B5E,"cmp","r7, #0x10",None),
+    (0x08010B62,"cmp","r0, #0x10",None),
+    (0x08010B66,"bl","#0x800dab4",None),
+    (0x08010B6C,"bl","#0x800e17c",None),
+    (0x08010B72,"bl","#0x800e70c",None),
+    (0x08010B78,"movs","r0, #6",None),
+    (0x08010B7A,"bl","#0x800e454",None),
+    (0x08010BAE,"orr","r0, r0, #0x4000",None),
+    (0x08010BB4,"movs","r0, #0x15",None),
+    (0x08010BB6,"bl","#0x800e454",None),
+    (0x08010BBC,"movs","r0, #0x16",None),
+    (0x08010BBE,"bl","#0x800e454",None),
+    (0x08010BC2,"cmp","r7, #0x10",None),
+    (0x08010BC6,"cmp","r0, #0x10",None),
+    (0x08010BCA,"bl","#0x800dab4",None),
+    (0x08010BD0,"bl","#0x800e17c",None),
+    (0x08010BD6,"bl","#0x800e70c",None),
+    (0x08010BDC,"movs","r0, #6",None),
+    (0x08010BDE,"bl","#0x800e454",None),
+    (0x08010C12,"orr","r0, r0, #0x8000",None),
+]
+
 def _instructions(payload,pc,count=5):
     return inspect_window(payload,pc,pc+20)[:count]
 
 def verify_original(payload:bytes)->dict:
     assert len(FIRST_OPCODES)==67
     check_sites(payload,READ_LITERAL_SITES)
+    check_sites(payload,EVENT_BRANCH_SITES)
     for register,(pc,offset) in PRELOADS.items():
         row=_instructions(payload,pc,1)[0]
         if not row["mnemonic"].startswith("ldrb") or register not in row["operands"]:
@@ -127,6 +157,9 @@ def verify_original(payload:bytes)->dict:
         ],
         "constant_zero_config_ids":[32,40,41],
         "constant_one_config_ids":[57,59],
+        "two_original_special_key_event_branches_verified":True,
+        "special_key_guard_sites":len(EVENT_BRANCH_SITES),
+        "software_state_flag_bits":[14,15],
         "full_visible_menu_state_machine_recovered":False,
         "physical_keycap_names_known":False,
         "original_nv_save_format_inferred":False,
