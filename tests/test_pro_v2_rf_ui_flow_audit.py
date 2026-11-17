@@ -22,8 +22,11 @@ class OemRfUiFlowTests(unittest.TestCase):
     def test_all_original_v2_instruction_sites(self):
         report=analyze(self.v2,self.v1)
         self.assertGreaterEqual(sum(report["verified_v2_thumb_sites"].values()),45)
-        self.assertFalse(report["tuning_table"]["frequency_hz_to_pll_formula_known"])
+        self.assertFalse(report["tuning_table"]["frequency_hz_to_pll_formula_known_from_original_firmware"])
         self.assertFalse(report["fd6818"]["ptt_pa_complete_hardware_sequence_proved"])
+        self.assertEqual(report["fd6818"]["rfic_rx_state_word"], "0xBFF1")
+        self.assertEqual(report["fd6818"]["rfic_tx_state_word"], "0xC1FE")
+        self.assertEqual(report["fd6818"]["guide_frequency_quantum_hz"], 10)
         self.assertTrue(report["keypad"]["scanned_index_0x13_and_0x14_in_ui_event"])
 
     def changed(self,addr):
@@ -58,6 +61,24 @@ class OemRfUiFlowTests(unittest.TestCase):
     def test_oem_key_index_compare_mutation(self):
         with self.assertRaises(ValueError):
             verify_sites(self.changed(0x08010B46))
+
+
+    def test_rx_tx_rfic_state_word_mutations_detected(self):
+        for address in (0x0800B070, 0x0800B0A0):
+            with self.subTest(pc=hex(address)), self.assertRaises(ValueError):
+                verify_sites(self.changed(address))
+
+    def test_reusable_rust_frequency_and_state_contract(self):
+        source=(ROOT/"firmware-pro/core/src/fd6818.rs").read_text(encoding="utf-8")
+        for term in (
+            "pub const FREQUENCY_QUANTUM_HZ: u64 = 10;",
+            "pub const OEM_RX_STATE_WORD: u16 = 0xBFF1;",
+            "pub const OEM_TX_STATE_WORD: u16 = 0xC1FE;",
+            "pub const fn frequency_hz_to_word(frequency_hz: u64) -> Option<u32>",
+            "self.write_register(REG_STATE, 0x0000)?;",
+            "self.write_register(REG_STATE, value)",
+        ):
+            self.assertIn(term,source)
 
     def test_raw_word_correction_is_32bit_wrap_not_hz(self):
         self.assertEqual(original_tuning_word(0xFFFF_FFF0,0x30),0x20)
