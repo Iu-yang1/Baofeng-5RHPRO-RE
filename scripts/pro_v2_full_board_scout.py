@@ -48,7 +48,7 @@ def print_windows(payload):
    print("END_REGION",group)
 def print_literal_sites(payload):
  md=Cs(CS_ARCH_ARM,CS_MODE_THUMB|CS_MODE_LITTLE_ENDIAN);md.detail=True
- for name,addr in MMIO.items():
+ for addr,name in MMIO.items():
   raw=struct.pack("<I",addr)
   locs=[BASE+i for i in range(0,len(payload)-3,4) if payload[i:i+4]==raw]
   sites=[]
