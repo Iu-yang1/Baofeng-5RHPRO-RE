@@ -38,6 +38,8 @@ pub trait RegisterIo {
     type Error;
     fn read32(&mut self,address:u32)->Result<u32,Self::Error>;
     fn write32(&mut self,address:u32,value:u32)->Result<(),Self::Error>;
+    fn read16(&mut self,address:u32)->Result<u16,Self::Error>;
+    fn write16(&mut self,address:u32,value:u16)->Result<(),Self::Error>;
 }
 
 pub const fn compatible_gpio_base(port:Port)->u32 {
@@ -88,15 +90,18 @@ pub fn configure_original_spi3_registers<IO:RegisterIo>(
     io:&mut IO,
 )->Result<(),IO::Error> {
     let base=OEM_SPI3_REGISTER_BASE;
-    let cr1=io.read32(base+OEM_SPI3_CR1_OFFSET)? as u16;
-    let cr2=io.read32(base+OEM_SPI3_CR2_OFFSET)? as u16;
-    io.write32(base+OEM_SPI3_CR1_OFFSET,
-        oem_spi3_cr1_after_configuration(cr1) as u32)?;
-    io.write32(base+OEM_SPI3_CR2_OFFSET,
-        (cr2 & !OEM_SPI3_CR2_CLEAR_MASK) as u32)?;
-    io.write32(base+OEM_SPI3_CRCPR_OFFSET,OEM_SPI3_CRC_POLYNOMIAL as u32)?;
-    io.write32(base+OEM_SPI3_CR1_OFFSET,
-        oem_spi3_cr1_after_enable(cr1) as u32)?;
+    // OEM 0x08031804/08/10 write SPI control registers with STRH.
+    // The peripheral's 16-bit register access width matters; avoid
+    // widening these stores to 32-bit MMIO writes on an unknown MCU.
+    let cr1=io.read16(base+OEM_SPI3_CR1_OFFSET)?;
+    let cr2=io.read16(base+OEM_SPI3_CR2_OFFSET)?;
+    io.write16(base+OEM_SPI3_CR1_OFFSET,
+        oem_spi3_cr1_after_configuration(cr1))?;
+    io.write16(base+OEM_SPI3_CR2_OFFSET,
+        cr2 & !OEM_SPI3_CR2_CLEAR_MASK)?;
+    io.write16(base+OEM_SPI3_CRCPR_OFFSET,OEM_SPI3_CRC_POLYNOMIAL)?;
+    io.write16(base+OEM_SPI3_CR1_OFFSET,
+        oem_spi3_cr1_after_enable(cr1))?;
     Ok(())
 }
 
@@ -198,6 +203,7 @@ mod tests {
     #[derive(Default)]
     struct Registers {
         reads:Vec<(u32,u32)>,writes:Vec<(u32,u32)>,
+        reads16:Vec<(u32,u16)>,writes16:Vec<(u32,u16)>,
         fail_write_on:Option<usize>,
     }
     impl RegisterIo for Registers {
@@ -206,8 +212,15 @@ mod tests {
             Ok(self.reads.iter().find(|(addr,_)|*addr==a).map(|x|x.1).unwrap_or(0))
         }
         fn write32(&mut self,a:u32,v:u32)->Result<(),Self::Error> {
-            if self.fail_write_on==Some(self.writes.len()+1) {return Err("MMIO");}
+            if self.fail_write_on==Some(self.writes.len()+self.writes16.len()+1) {return Err("MMIO");}
             self.writes.push((a,v));Ok(())
+        }
+        fn read16(&mut self,a:u32)->Result<u16,Self::Error> {
+            Ok(self.reads16.iter().find(|(addr,_)|*addr==a).map(|x|x.1).unwrap_or(0))
+        }
+        fn write16(&mut self,a:u32,v:u16)->Result<(),Self::Error> {
+            if self.fail_write_on==Some(self.writes.len()+self.writes16.len()+1) {return Err("MMIO");}
+            self.writes16.push((a,v));Ok(())
         }
     }
 
@@ -231,11 +244,12 @@ mod tests {
     #[test]
     fn spi3_oem_cr1_cr2_crc_setup_and_enable_order_is_observable() {
         let mut registers=Registers{
-            reads:std::vec![(0x40003C00,0x3040),(0x40003C04,0xABCD)],
+            reads16:std::vec![(0x40003C00,0x3040),(0x40003C04,0xABCD)],
             ..Registers::default()
         };
         configure_original_spi3_registers(&mut registers).unwrap();
-        assert_eq!(registers.writes,std::vec![
+        assert!(registers.writes.is_empty());
+        assert_eq!(registers.writes16,std::vec![
             (0x40003C00,0x3357),(0x40003C04,0xA3CD),
             (0x40003C10,7),(0x40003C00,0x3357),
         ]);
@@ -245,7 +259,8 @@ mod tests {
     fn failed_register_setup_does_not_issue_enable() {
         let mut r=Registers{fail_write_on:Some(3),..Registers::default()};
         assert_eq!(configure_original_spi3_registers(&mut r),Err("MMIO"));
-        assert_eq!(r.writes.len(),2);
+        assert_eq!(r.writes16.len(),2);
+        assert!(r.writes.is_empty());
     }
 
     struct Spi {tx:Vec<u8>,fail_at:Option<usize>}
