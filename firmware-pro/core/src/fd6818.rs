@@ -18,6 +18,28 @@ pub const REG_FREQUENCY_LO: u8 = 0x38;
 pub const REG_STATE: u8 = 0x30;
 pub const ORIGINAL_STATE_WORD: u16 = 0xC3FA;
 
+
+/// Confirmed V2 setup calls its generic delay helper with this raw argument.
+/// No clock/tick unit is established by the static instruction sequence.
+pub const OEM_SETUP_DELAY_ARGUMENT: u32 = 0x0190;
+
+/// Board HAL supplies whatever time unit the original delay helper uses.
+/// Host tests can capture the request without hardware or a timing guess.
+pub trait StockDelay {
+    fn wait_original_argument(&mut self, argument: u32);
+}
+
+/// Original V2 setup reads a cached REG_37 halfword then masks/sets bits.
+pub const fn oem_setup_reg37(previous: u16) -> u16 {
+    (previous & 0xFDF0) | 0x020F
+}
+
+/// Stock runtime tuning performs wrapping 32-bit addition before writing
+/// upper/lower halves; the quantity is NOT a frequency in Hz.
+pub const fn oem_tuning_add(raw_table_word: u32, correction_word: u32) -> u32 {
+    raw_table_word.wrapping_add(correction_word)
+}
+
 pub struct Fd6818<B> {
     bus: B,
 }
@@ -44,6 +66,34 @@ impl<B: I2cRegisterBus> Fd6818<B> {
     pub fn write_frequency_word(&mut self, raw_word: u32) -> Result<(), B::Error> {
         self.write_register(REG_FREQUENCY_HI, (raw_word >> 16) as u16)?;
         self.write_register(REG_FREQUENCY_LO, raw_word as u16)
+    }
+
+    /// OEM V2 `0x0800A428` setup prefix only. This is not a complete
+    /// TX/RX/PTT/PA sequence, nor evidence of a real powered-on RF state.
+    /// The caller supplies the original raw tuning word and cached reg37.
+    pub fn apply_oem_setup_prefix<D: StockDelay>(
+        &mut self,
+        raw_word: u32,
+        cached_reg37: u16,
+        delay: &mut D,
+    ) -> Result<(), B::Error> {
+        self.write_register(0x51, 0x0300)?;
+        self.write_frequency_word(raw_word)?;
+        self.write_register(0x37, oem_setup_reg37(cached_reg37))?;
+        self.write_register(REG_STATE, 0x0000)?;
+        self.write_register(REG_STATE, 0xBFF1)?;
+        delay.wait_original_argument(OEM_SETUP_DELAY_ARGUMENT);
+        Ok(())
+    }
+
+    /// OEM V2 `0x0800AFE4`: table word + correction, then 0x39/0x38.
+    /// The table-index selection is application state, not a PLL formula.
+    pub fn write_oem_corrected_tuning_word(
+        &mut self,
+        raw_table_word: u32,
+        correction_word: u32,
+    ) -> Result<(), B::Error> {
+        self.write_frequency_word(oem_tuning_add(raw_table_word, correction_word))
     }
 
     pub fn into_bus(self) -> B {
@@ -136,4 +186,54 @@ mod tests {
         assert_eq!(bus.calls, 2);
         assert_eq!(bus.writes.len(), 1);
     }
+
+    #[derive(Default)]
+    struct WaitRecorder { calls: std::vec::Vec<u32> }
+    impl StockDelay for WaitRecorder {
+        fn wait_original_argument(&mut self, argument: u32) {
+            self.calls.push(argument);
+        }
+    }
+
+    #[test]
+    fn verified_oem_setup_prefix_preserves_order_and_original_raw_wait() {
+        let mut radio = Fd6818::new(Recorder::default());
+        let mut delay = WaitRecorder::default();
+        radio.apply_oem_setup_prefix(0x1234_5678, 0xFFFF, &mut delay).unwrap();
+        assert_eq!(radio.into_bus().writes, std::vec![
+            (0x71, std::vec![0x51, 0x03, 0x00]),
+            (0x71, std::vec![0x39, 0x12, 0x34]),
+            (0x71, std::vec![0x38, 0x56, 0x78]),
+            (0x71, std::vec![0x37, 0xFF, 0xFF]),
+            (0x71, std::vec![0x30, 0x00, 0x00]),
+            (0x71, std::vec![0x30, 0xBF, 0xF1]),
+        ]);
+        assert_eq!(delay.calls, std::vec![0x190]);
+    }
+
+    #[test]
+    fn oem_setup_preserves_masked_state_and_aborts_on_bus_failure() {
+        assert_eq!(oem_setup_reg37(0), 0x020F);
+        assert_eq!(oem_setup_reg37(0x1234), 0x123F);
+        let mut radio = Fd6818::new(Recorder {
+            fail_on_call: Some(4), ..Recorder::default()
+        });
+        let mut delay = WaitRecorder::default();
+        assert_eq!(radio.apply_oem_setup_prefix(0x1234_5678, 0, &mut delay),
+                   Err("failed transaction"));
+        assert_eq!(radio.into_bus().writes.len(), 3);
+        assert!(delay.calls.is_empty());
+    }
+
+    #[test]
+    fn oem_runtime_tuning_adds_raw_correction_with_32bit_wrap() {
+        assert_eq!(oem_tuning_add(0xFFFF_FFF0, 0x30), 0x20);
+        let mut radio = Fd6818::new(Recorder::default());
+        radio.write_oem_corrected_tuning_word(0xFFFF_FFF0, 0x30).unwrap();
+        assert_eq!(radio.into_bus().writes, std::vec![
+            (0x71, std::vec![0x39, 0, 0]),
+            (0x71, std::vec![0x38, 0, 0x20]),
+        ]);
+    }
+
 }
