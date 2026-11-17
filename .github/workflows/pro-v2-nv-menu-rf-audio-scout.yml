@@ -1,0 +1,42 @@
+name: Pro V2 NV/menu RF/audio research scout
+on:
+  pull_request:
+    paths:
+      - "scripts/pro_v2_nv_menu_rf_audio_scout.py"
+      - ".github/workflows/pro-v2-nv-menu-rf-audio-scout.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "capstone==5.0.6"
+      - name: Source callsite candidates
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus callers
+      - name: Config writer vicinity
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_followup --max-lines 190
+      - name: Config adjacent handlers
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_neighbor --max-lines 180
+      - name: TX state entry
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus tx_prefix --max-lines 170
+      - name: TX RFIC switch
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus rfic_switch --max-lines 170
+      - name: TX key monitor
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus key_poll --max-lines 160
+      - name: Audio switch
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus audio --max-lines 160
+      - name: PB6 switch
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus pb6 --max-lines 80
+      - name: PB1 switch and restore
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus pb1 --max-lines 60
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus pb1_restore --max-lines 60
+      - name: Identity xrefs
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus identity
