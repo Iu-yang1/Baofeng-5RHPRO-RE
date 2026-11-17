@@ -87,6 +87,21 @@ pub const fn oem_trim_slot_for_raw_word(raw_tuning_word: u32) -> u8 {
     0
 }
 
+/// Apply the original V2 frequency-window classification to one existing
+/// runtime mapping slot. The caller owns the table/storage and supplies the
+/// current software-state slot; it is NOT a frequency authorization check.
+/// This is independent of the RFIC TX/RX and external PA state machines.
+pub fn update_oem_runtime_trim_slot(
+    live_mapping: &mut [u8],
+    state_slot: usize,
+    raw_tuning_word: u32,
+) -> Option<u8> {
+    let target = live_mapping.get_mut(state_slot)?;
+    let index = oem_trim_slot_for_raw_word(raw_tuning_word);
+    *target = index;
+    Some(index)
+}
+
 #[cfg(test)]
 mod original_rf_window_tests {
     use super::*;
@@ -110,5 +125,24 @@ mod original_rf_window_tests {
         assert_eq!(oem_trim_slot_for_raw_word(230_000_000 / 10), 1);
         assert_eq!(oem_trim_slot_for_raw_word(370_000_000 / 10), 2);
         assert_eq!(oem_trim_slot_for_raw_word(435_000_000 / 10), 3);
+    }
+}
+
+#[cfg(test)]
+mod source_backed_runtime_writer_tests {
+    use super::*;
+
+    #[test]
+    fn four_source_windows_populate_live_mapping_and_unknown_uses_zero() {
+        let mut live_map = [255u8; 5];
+        for (slot, freq) in [145_500_000u32, 230_000_000, 370_000_000, 435_000_000]
+            .iter().copied().enumerate()
+        {
+            assert_eq!(update_oem_runtime_trim_slot(&mut live_map, slot, freq/10), Some(slot as u8));
+        }
+        assert_eq!(live_map[0..4], [0,1,2,3]);
+        assert_eq!(update_oem_runtime_trim_slot(&mut live_map, 4, 550_000_000/10),Some(0));
+        assert_eq!(live_map[4],0);
+        assert_eq!(update_oem_runtime_trim_slot(&mut live_map, 5, 435_000_000/10),None);
     }
 }
