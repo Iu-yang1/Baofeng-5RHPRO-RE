@@ -62,7 +62,7 @@ pub const fn frequency_hz_to_word(frequency_hz: u64) -> Option<u32> {
 pub enum RficState { Idle, Receive, Transmit }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FrequencyWriteError<E> { UnrepresentableFrequency, Bus(E) }
+pub enum FrequencyWriteError<E> { UnrepresentableFrequency, UnknownTrimIndex(u8), Bus(E) }
 
 pub struct Fd6818<B> {
     bus: B,
@@ -144,6 +144,34 @@ impl<B: I2cRegisterBus> Fd6818<B> {
         let trim = crate::nv_rf::original_trim_word(original_trim_byte);
         self.write_frequency_word(base.wrapping_add(trim))
             .map_err(FrequencyWriteError::Bus)
+    }
+
+    /// OEM V2's runtime path uses the selected correction from the
+    /// four-word table before writing the original 32-bit tuning word.
+    /// The caller provides the STOCK mode-table index, not a guessed band.
+    pub fn write_oem_corrected_tuning_word_for_mode(
+        &mut self,
+        raw_table_word: u32,
+        trims: &crate::nv_rf::OemFrequencyTrims,
+        mode_index: u8,
+    ) -> Result<(), FrequencyWriteError<B::Error>> {
+        let trim = trims.word_at(mode_index)
+            .ok_or(FrequencyWriteError::UnknownTrimIndex(mode_index))?;
+        self.write_oem_corrected_tuning_word(raw_table_word, trim)
+            .map_err(FrequencyWriteError::Bus)
+    }
+
+    /// Convenience API for the datasheet 10-Hz word encoding plus an OEM
+    /// per-radio mode trim. This does not replace the raw OEM table path.
+    pub fn write_frequency_hz_with_oem_mode_trim(
+        &mut self,
+        frequency_hz: u64,
+        trims: &crate::nv_rf::OemFrequencyTrims,
+        mode_index: u8,
+    ) -> Result<(), FrequencyWriteError<B::Error>> {
+        let raw = trims.original_bytes.get(mode_index as usize)
+            .copied().ok_or(FrequencyWriteError::UnknownTrimIndex(mode_index))?;
+        self.write_frequency_hz_with_oem_trim(frequency_hz, raw)
     }
 
     /// OEM V2 state values cross-check the FD6818 programming guide:
@@ -366,4 +394,64 @@ mod tests {
         assert_eq!(rf.into_bus().writes.len(), 1);
     }
 
+}
+
+#[cfg(test)]
+mod oem_mode_tune_pipeline_tests {
+    extern crate std;
+    use super::*;
+    use crate::nv_rf::OemFrequencyTrims;
+    use std::vec::Vec;
+
+    #[derive(Default)]
+    struct Bus { packets: Vec<Vec<u8>> }
+    impl I2cRegisterBus for Bus {
+        type Error = &'static str;
+        fn write(&mut self, _: u8, bytes: &[u8]) -> Result<(), Self::Error> {
+            self.packets.push(bytes.to_vec()); Ok(())
+        }
+        fn write_read(&mut self, _: u8, _: &[u8], _: &mut [u8])
+            -> Result<(), Self::Error> { unreachable!() }
+    }
+
+    #[test]
+    fn original_mode_index_selects_signed_trim_from_four_loaded_bytes() {
+        let trims = OemFrequencyTrims::new([0, 0x27, 0x60, 0x61]);
+        let expected = [
+            (0, 0x0000_0F38u32), // 4096 - 200
+            (1, 0x0000_0FFBu32), // 4096 - 5
+            (2, 0x0000_1118u32), // 4096 + 280
+            (3, 0x0000_1000u32), // invalid-high source becomes neutral
+        ];
+        for (index, word) in expected {
+            let mut rf = Fd6818::new(Bus::default());
+            rf.write_oem_corrected_tuning_word_for_mode(0x1000, &trims, index).unwrap();
+            assert_eq!(rf.into_bus().packets, std::vec![
+                std::vec![0x39, 0, 0],
+                std::vec![0x38, (word >> 8) as u8, word as u8],
+            ]);
+        }
+    }
+
+    #[test]
+    fn unmapped_index_never_issues_a_register_write() {
+        let trims = OemFrequencyTrims::new([0x28; 4]);
+        let mut rf = Fd6818::new(Bus::default());
+        assert_eq!(rf.write_oem_corrected_tuning_word_for_mode(0, &trims, 4),
+                   Err(FrequencyWriteError::UnknownTrimIndex(4)));
+        assert_eq!(rf.write_frequency_hz_with_oem_mode_trim(145_500_000, &trims, 255),
+                   Err(FrequencyWriteError::UnknownTrimIndex(255)));
+        assert!(rf.into_bus().packets.is_empty());
+    }
+
+    #[test]
+    fn datasheet_hz_path_accepts_mode_trims_without_hardware_calibration_defaults() {
+        let trims = OemFrequencyTrims::new([0x28, 0x29, 0x27, 0xFF]);
+        let mut rf = Fd6818::new(Bus::default());
+        rf.write_frequency_hz_with_oem_mode_trim(409_750_000, &trims, 2).unwrap();
+        assert_eq!(rf.into_bus().packets, std::vec![
+            std::vec![0x39, 0x02, 0x71],
+            std::vec![0x38, 0x3A, 0x93],
+        ]);
+    }
 }
