@@ -30,3 +30,5 @@ pub mod oem_nv_compat;
 pub mod oem_menu_ui;
 
 pub mod menu_lcd;
+
+pub mod oem_board_hal;
