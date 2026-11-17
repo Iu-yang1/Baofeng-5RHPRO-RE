@@ -7,6 +7,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"tools"))
 from mcu_fingerprint import decoded_payload
 from thumb_window import inspect_window
 from thumb_callsites import find_calls
+import struct
 from v2_pll_runtime_order import reachable_calls
 DATA = {
 "v2": ("firmware/BF_5RH_501_v2_0_9.dat", [
@@ -39,6 +40,10 @@ def main():
   if version=="v2":
    for key,refs in find_calls(p,V2_TARGETS).items():
     print("CROSSREF",key,len(refs),*[x["call_pc"] for x in refs[:70]])
+   for value in [0x2000246C,0x2000245C,0x20001B84,0x200102B0,0x0800AFE5]:
+    b=struct.pack("<I",value)
+    pcs=[0x08001000+i for i in range(0,len(p)-3,4) if p[i:i+4]==b]
+    print("WORD_LITERAL",hex(value),len(pcs),*[hex(q) for q in pcs[:100]])
    for entry in [0x0800DDB8,0x0800B0A0,0x08005EC6,0x08010998]:
     try:
      calls=reachable_calls(p,entry,cap=850)
