@@ -62,6 +62,9 @@ jobs:
       - name: Verify V2 calibration NV SPI3 read transaction
         run: |
           python tools/pro_v2_spi3_nv_read_audit.py --json > pro-v2-spi3-nv-evidence.json
+      - name: Exploratory six-chain OEM Thumb audit (read-only)
+        run: |
+          python scripts/pro_v2_six_chain_scout.py --limit 70
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
