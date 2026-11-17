@@ -141,3 +141,29 @@ transport over an abstract byte-exchange bus and `BoardGpio`, retaining
 hardware error information and without granting erase/program capability.
 The matching [instruction audit](../docs/pro-v2-nv-calibration-pipeline.zh-CN.md)
 is checked in CI. This identifies software GPIO bits, not QFN physical pads.
+
+
+## V2 six-chain source contracts: runtime RF mode and configuration IDs
+
+The [new OEM six-chain research report](../docs/pro-v2-six-chain-source-evidence.zh-CN.md)
+verifies the original SPI3/GPIOB software register setup, four frequency
+windows against both archived V1/V2 versions, and the runtime
+`state -> map byte -> 4 signed trim words -> RFIC tuning` chain.
+
+- `core/src/rf_mode.rs`: source-backed RF software windows
+  136–174, 200–260, 350–399 and 400–520 MHz, with original
+  out-of-window **trim index 0 fallback**, and a caller-supplied live
+  mapping for the original two-level lookup
+- `core/src/fd6818.rs`: select loaded trim from the current runtime
+  mode byte before the existing 32-bit original RFIC tuning operation
+- `core/src/oem_menu.rs`: 67 original configuration-ID TBB dispatch
+  offsets as **read-only research addresses**; IDs are neither physical
+  keycap indices nor proven visible menu pages
+- `core/src/spi3_nv.rs`: host-tested source-compatible SPI3 CR1
+  setup/enable calculation without declaring physical pad assignments
+
+Tests and source audits live under `tests/test_pro_v2_*_audit.py`
+and `tools/pro_v2_*_audit.py`. FD6818 TX-related register sequences
+and GPIO output bits are software facts; they do not establish a real
+PA bias control, analog microphone/speaker wiring, physical PTT button,
+complete menu state machine, MCU vendor or flashable system HAL.
