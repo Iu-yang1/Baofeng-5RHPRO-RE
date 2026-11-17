@@ -47,6 +47,10 @@ WINDOWS={
  "menu_ram_owner_b":(0x08010680,0x08010728),
  "menu_ram_owner_c":(0x08016460,0x08016620),
  "nv_transactions":(0x080190E0,0x080191C8),
+ "config_setter_dispatch":(0x080164A0,0x080164D6),
+ "config_setter_cases":(0x08016514,0x0801679C),
+ "config_setter_tail":(0x0801679C,0x080168BC),
+ "config_restore_tail":(0x080105A0,0x080106A4),
  "tx_audio_tail":(0x0800A9C0,0x0800AB40),
  "rx_audio_paths":(0x0800AD60,0x0800AF60),
 }
