@@ -16,7 +16,8 @@ from pro_v2_mode_ui_contract_audit import MENU_OFFSETS, TBB_BASE
 
 IMAGE=Path("firmware/BF_5RH_501_v2_0_9.dat")
 WINDOWS={
-    "config_getter":(0x0800E454,0x0800E67A),
+    "config_getter":(0x0800E454,0x0800E486),
+    "config_handlers":(0x0800E4CA,0x0800E674),
     "config_getter_tail":(0x0800E674,0x0800E850),
     "ui_event_branch":(0x08010B40,0x08010CCE),
     "tx_state_enter":(0x0800A8A0,0x0800A9C8),
