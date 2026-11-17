@@ -65,6 +65,10 @@ jobs:
       - name: Exploratory six-chain OEM Thumb audit (read-only)
         run: |
           python scripts/pro_v2_six_chain_scout.py --limit 70
+      - name: Audit V1/V2 four RF trim windows and default mode index
+        run: python tools/pro_v2_rf_window_audit.py --json > pro-v2-rf-windows-evidence.json
+      - name: Audit runtime trim selector and 67-case OEM menu dispatcher
+        run: python tools/pro_v2_mode_ui_contract_audit.py --json > pro-v2-mode-menu-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -81,4 +85,6 @@ jobs:
             pro-v2-rf-ui-flow-evidence.json
             pro-v2-deep-board-evidence.json
             pro-v2-spi3-nv-evidence.json
+            pro-v2-rf-windows-evidence.json
+            pro-v2-mode-menu-evidence.json
           if-no-files-found: error
