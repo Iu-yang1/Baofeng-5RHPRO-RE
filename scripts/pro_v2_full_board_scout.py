@@ -15,6 +15,10 @@ from v2_scatterload_regions import REGION_START
 
 IMAGE=Path("firmware/BF_5RH_501_v2_0_9.dat")
 REGIONS = {
+  "next_nv_trim": [(0x08012B90,0x08012D98)],
+  "next_pa_gpio": [(0x08017288,0x08017380),(0x080328E0,0x0803295C),(0x08009A70,0x08009BD4),(0x0800CAE0,0x0800CB54),(0x0800DA20,0x0800DA70)],
+  "next_lcd_on": [(0x080153A0,0x08015420)],
+  "next_ui_event": [(0x08010B40,0x08010CF0)],
   "gpio_external_control": [
    (0x08009B88,0x08009BDC),(0x0800CAC0,0x0800CB5A),
    (0x0800DA08,0x0800DA74),(0x08011EA8,0x08011F80),
