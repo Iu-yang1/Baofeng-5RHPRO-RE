@@ -28,6 +28,8 @@ class OemRfUiFlowTests(unittest.TestCase):
         self.assertEqual(report["fd6818"]["rfic_tx_state_word"], "0xC1FE")
         self.assertEqual(report["fd6818"]["guide_frequency_quantum_hz"], 10)
         self.assertTrue(report["keypad"]["scanned_index_0x13_and_0x14_in_ui_event"])
+        self.assertTrue(report["keypad"]["separate_active_low_gpioa_bit9_sampled"])
+        self.assertFalse(report["keypad"]["auxiliary_button_is_ptt_proved"])
 
     def changed(self,addr):
         b=bytearray(self.v2)
@@ -62,6 +64,17 @@ class OemRfUiFlowTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_sites(self.changed(0x08010B46))
 
+
+    def test_separate_active_low_button_sample_branch_mutations(self):
+        for address in (0x080109A2, 0x080109A6, 0x080109A8):
+            with self.subTest(pc=hex(address)), self.assertRaises(ValueError):
+                verify_sites(self.changed(address))
+
+    def test_rust_auxiliary_key_flag_matches_oem_bit9(self):
+        key=(ROOT/"firmware-pro/core/src/keypad.rs").read_text(encoding="utf-8")
+        board=(ROOT/"firmware-pro/core/src/board_v2.rs").read_text(encoding="utf-8")
+        self.assertIn("pub const AUXILIARY_GPIOA_INPUT_BIT: u8 = 9;",key)
+        self.assertIn("pub const AUXILIARY_KEY_GPIO: Pin = Pin { port: Port::A, bit: 9 };",board)
 
     def test_rx_tx_rfic_state_word_mutations_detected(self):
         for address in (0x0800B070, 0x0800B0A0):
