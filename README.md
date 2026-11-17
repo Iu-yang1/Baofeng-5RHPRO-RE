@@ -547,3 +547,27 @@ on-device repair or writes were performed. PB6 software state and
 FD6818 REG43/13 audio-option control were also recovered at the
 register level, without identifying physical PA/PTT, microphone,
 speaker, or XL9951Q QFN64 package pads.
+
+
+### V6: menu edit, 57-setting NV reboot compatibility and register-level board HAL
+
+The [V6 detailed Chinese report](docs/pro-v2-menu-ui-nv-compat-board-hal-v6.zh-CN.md)
+extends original OEM menu research to the `0x080167B8` menu-active/
+selection/refresh state function and the original text/framebuffer path.
+The independent `no_std` UI now has browse/edit/cancel/confirm
+transitions and a **working 160×128 RGB565 diagnostic view** (CFG ID,
+value and edit state) that can flush via SPI2. These generic labels are
+not falsely advertised as the recovered OEM graphical menu/key legends.
+
+A full host-only `57`-writable-ID NV restore→setter→commit→reboot
+matrix compares exact OEM addresses with opt-in loader-consistent
+persistence. The original discrepancies for IDs `0x0D`, `0x0E`
+and `0x17` remain separately reproducible, with a non-destructive
+independent firmware layout option; no real NOR was changed.
+
+The `oem_board_hal.rs` module provides real software-MMIO GPIO
+adapters, source-compatible SPI3 register setup, a SPI2 LCD command/data
+transport on software PB12/PA12, PA8 panel reset and GPIOC two-pass
+keypad scanning. Actual XL9951Q identity, QFN64 physical pads, clocks,
+external PA/PTT and analog audio circuit still require board evidence
+before a flashable firmware can be released.

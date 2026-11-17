@@ -74,6 +74,10 @@ jobs:
         run: python tools/pro_v2_config_nv_setter_audit.py --json > pro-v2-config-nv-setter-evidence.json
       - name: Audit OEM GPIOB6 state and AF REG43/13 subpaths
         run: python tools/pro_v2_rf_audio_gpio_v5_audit.py --json > pro-v2-rf-audio-gpio-v5-evidence.json
+      - name: Verify original V2 menu monitor and framebuffer/text branch evidence
+        run: python tools/pro_v2_menu_ui_state_audit.py --json > pro-v2-menu-ui-v6-evidence.json
+      - name: Verify source OEM GPIO SPI2 SPI3 LCD and keypad board HAL contracts
+        run: python tools/pro_v2_board_hal_v6_audit.py --json > pro-v2-board-hal-v6-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -96,4 +100,6 @@ jobs:
             pro-v2-config-getter-evidence.json
             pro-v2-config-nv-setter-evidence.json
             pro-v2-rf-audio-gpio-v5-evidence.json
+            pro-v2-menu-ui-v6-evidence.json
+            pro-v2-board-hal-v6-evidence.json
           if-no-files-found: error

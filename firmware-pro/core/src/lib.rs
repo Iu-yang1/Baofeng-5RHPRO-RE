@@ -25,3 +25,10 @@ pub mod oem_menu_event;
 pub mod oem_config_setter;
 
 pub mod oem_config_restore;
+
+pub mod oem_nv_compat;
+pub mod oem_menu_ui;
+
+pub mod menu_lcd;
+
+pub mod oem_board_hal;
