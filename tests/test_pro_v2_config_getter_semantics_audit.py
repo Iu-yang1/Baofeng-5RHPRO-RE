@@ -41,7 +41,7 @@ class OriginalConfigGetterTests(unittest.TestCase):
             with self.subTest(id=id_):
                 changed=bytearray(self.payload)
                 pc=TBB_BASE+2*offset
-                changed[pc-BASE] ^= 0xFF
+                changed[pc-BASE:pc-BASE+2] = b"\x00\xBF" # Thumb NOP
                 with self.assertRaises((ValueError,IndexError)):
                     verify_original(bytes(changed))
 
