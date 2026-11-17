@@ -43,6 +43,12 @@ WINDOWS={
  "pb1":(0x08009A80,0x08009AC0),
  "pb1_restore":(0x08009B80,0x08009BD0),
  "config_load":(0x0800DE00,0x0800E120),
+ "menu_ram_owner_a":(0x0801045C,0x080105C0),
+ "menu_ram_owner_b":(0x08010680,0x08010728),
+ "menu_ram_owner_c":(0x08016460,0x08016620),
+ "nv_transactions":(0x080190E0,0x080191C8),
+ "tx_audio_tail":(0x0800A9C0,0x0800AB40),
+ "rx_audio_paths":(0x0800AD60,0x0800AF60),
 }
 
 def main():
