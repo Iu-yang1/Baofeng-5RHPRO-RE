@@ -38,6 +38,10 @@ pub const BROADCAST_FM: SoftwareI2cPins = SoftwareI2cPins {
 /// This establishes a software LCD-reset output, NOT a QFN package pad.
 pub const PANEL_RESET: Pin = Pin { port: Port::A, bit: 8 };
 
+/// V2 0x080141DC SPI3 0x03 read transaction uses A15 low/high as CS.
+/// This is a *software port-bit observation*, not a QFN64 physical pad map.
+pub const OEM_SPI3_NV_CS_SOFTWARE: Pin = Pin { port: Port::A, bit: 15 };
+
 /// GPIOB signals with both set/reset callsites in original V2 code.
 /// Their exact physical signal names are not established by static disasm.
 /// OEM 0x08009A8E writes GPIOB BRR bit1; 0x08009BB0 writes
