@@ -104,6 +104,36 @@ pub const OEM_RF_WORKING_WORDS: [u32;4] = [
     0x002F_03E7, 0x002F_1786, 0x002F_2343, 0x002F_31E1,
 ];
 
+/// Four *original* per-radio trim bytes, not synthetic calibration data.
+/// The OEM V2 indexes these four words through its SRAM-mode lookup.
+/// An index has no physical band name until the UI/state mapping is proven.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OemFrequencyTrims {
+    pub original_bytes: [u8; OEM_FREQUENCY_TRIM_COUNT],
+}
+
+impl OemFrequencyTrims {
+    pub const fn new(original_bytes: [u8; OEM_FREQUENCY_TRIM_COUNT]) -> Self {
+        Self { original_bytes }
+    }
+
+    pub const fn word_at(&self, index: u8) -> Option<u32> {
+        if (index as usize) < OEM_FREQUENCY_TRIM_COUNT {
+            Some(original_trim_word(self.original_bytes[index as usize]))
+        } else {
+            None
+        }
+    }
+
+    pub const fn hz_at(&self, index: u8) -> Option<i32> {
+        if (index as usize) < OEM_FREQUENCY_TRIM_COUNT {
+            Some(original_trim_hz(self.original_bytes[index as usize]))
+        } else {
+            None
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,4 +194,23 @@ mod tests {
         assert_eq!(pair.second.values[0],0x5678);
     }
 
+}
+
+#[cfg(test)]
+mod oem_frequency_trim_set_tests {
+    use super::*;
+
+    #[test]
+    fn four_original_bytes_are_not_overwritten_by_normalization() {
+        let trims = OemFrequencyTrims::new([0, 0x27, 0x60, 0xFF]);
+        assert_eq!(trims.original_bytes, [0, 0x27, 0x60, 0xFF]);
+        assert_eq!(trims.word_at(0), Some((-200i32) as u32));
+        assert_eq!(trims.word_at(1), Some((-5i32) as u32));
+        assert_eq!(trims.word_at(2), Some(280));
+        assert_eq!(trims.word_at(3), Some(0));
+        assert_eq!(trims.hz_at(0), Some(-2000));
+        assert_eq!(trims.hz_at(3), Some(0));
+        assert_eq!(trims.word_at(4), None);
+        assert_eq!(trims.hz_at(255), None);
+    }
 }
