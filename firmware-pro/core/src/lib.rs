@@ -9,3 +9,5 @@ pub mod lcd;
 pub mod board_v2;
 
 pub mod nv_rf;
+
+pub mod audio;
