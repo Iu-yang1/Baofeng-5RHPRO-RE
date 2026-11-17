@@ -498,3 +498,20 @@ The new read-only `core/src/spi3_nv.rs` transport and
 `tools/pro_v2_spi3_nv_read_audit.py` verify this contract. It does not
 identify the external NOR die or physical XL9951Q QFN pad. See the
 [updated evidence report](docs/pro-v2-nv-calibration-pipeline.zh-CN.md).
+
+
+### V1/V2 six-chain RFIC/SPI3/menu source audit
+
+The [six-chain OEM V2 evidence report (中文)](docs/pro-v2-six-chain-source-evidence.zh-CN.md)
+adds source-backed SPI3 software initialization (GPIOB bits3/4/5, SPI3 CR1/CR2,
+GPIOA15 NV chip-select), V1/V2 cross-checked four calibration windows
+**136–174 / 200–260 / 350–399 / 400–520 MHz**, and the original
+runtime two-level RF trim selector. Out-of-window values follow the
+stock writer's trim-slot-0 fallback; this is *not* a TX lock.
+
+The same investigation recovers the 67-ID **configuration reader**
+TBB dispatch and source-level RFIC TX/audio register callsites. Host-tested
+`no_std` additions live in `rf_mode.rs` and `oem_menu.rs`; the
+original silicon vendor, physical QFN64 pinout, external PA/PTT, TDA2822/
+LM2904B circuits and complete visible menu state machine remain unverified.
+The project still does not ship flashable replacement firmware.
