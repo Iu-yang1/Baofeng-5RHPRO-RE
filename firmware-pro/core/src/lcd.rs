@@ -369,3 +369,100 @@ mod oem_panel_init_tests {
         assert_eq!(panel.events, std::vec![Operation::Command(0x29)]);
     }
 }
+
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum OriginalPanelInitError<BusError, ResetError> {
+    Reset(ResetError),
+    Bus(BusError),
+}
+
+/// Board-HAL orchestration of both OEM panel reset and register setup.
+pub fn initialize_oem_panel<B, D, R>(
+    panel: &mut B, delay: &mut D, reset: &mut R, orientation: OemOrientation
+) -> Result<(), OriginalPanelInitError<B::Error, R::Error>>
+where B: PanelBus, D: OriginalPanelDelay, R: OriginalPanelReset {
+    reset_oem_panel(reset).map_err(OriginalPanelInitError::Reset)?;
+    initialize_oem_registers(panel, delay, orientation)
+        .map_err(OriginalPanelInitError::Bus)
+}
+
+/// The OEM asserts 0x29 at the *first successful framebuffer transfer*,
+/// not at the end of startup register writes. Empty rectangles do nothing.
+pub fn flush_oem_frame<B: PanelBus>(
+    fb: &FrameBuffer<'_>, bus: &mut B, display: &mut FirstFrameDisplayOn,
+    x: usize, y: usize, width: usize, height: usize
+) -> Result<(), B::Error> {
+    if x >= FRAME_WIDTH || y >= FRAME_HEIGHT || width == 0 || height == 0 {
+        return Ok(());
+    }
+    fb.flush_rect(bus, x, y, width, height)?;
+    display.after_frame(bus)
+}
+
+#[cfg(test)]
+mod oem_panel_orchestration_tests {
+    extern crate std;
+    use super::*;
+    #[derive(Default)]
+    struct Bus {
+        sent: std::vec::Vec<(bool,u8)>,
+        fail: Option<u8>,
+    }
+    impl PanelBus for Bus {
+        type Error = &'static str;
+        fn command(&mut self, c:u8)->Result<(),Self::Error>{
+            if self.fail==Some(c) { return Err("bus"); }
+            self.sent.push((true,c));Ok(())
+        }
+        fn data(&mut self, d:&[u8])->Result<(),Self::Error>{
+            for &b in d{self.sent.push((false,b));} Ok(())
+        }
+    }
+    struct Delay;
+    impl OriginalPanelDelay for Delay {
+        fn wait_oem_argument(&mut self, _:u32) {}
+    }
+    #[derive(Default)]
+    struct Reset { levels:std::vec::Vec<bool>, fail:bool }
+    impl OriginalPanelReset for Reset {
+        type Error = &'static str;
+        fn set_reset_high(&mut self,h:bool)->Result<(),Self::Error>{
+            if self.fail {return Err("reset");}
+            self.levels.push(h);Ok(())
+        }
+        fn wait_oem_argument(&mut self, _:u32) {}
+    }
+    #[test]
+    fn integrated_panel_initialize_and_first_frame_enable() {
+        let mut bus=Bus::default();
+        let mut reset=Reset::default();
+        initialize_oem_panel(&mut bus,&mut Delay,&mut reset,
+            OemOrientation::Alternate60).unwrap();
+        assert_eq!(reset.levels,std::vec![true,false,true]);
+        assert_eq!(bus.sent[0],(true,0x11));
+        assert!(!bus.sent.contains(&(true,0x29)));
+        let mut pixels=std::vec![0u16;FRAME_PIXELS];
+        let fb=FrameBuffer::new(&mut pixels).unwrap();
+        let mut on=FirstFrameDisplayOn::new();
+        flush_oem_frame(&fb,&mut bus,&mut on,0,0,1,1).unwrap();
+        assert!(on.is_on());
+        assert_eq!(*bus.sent.last().unwrap(),(true,0x29));
+        let count=bus.sent.iter().filter(|x|**x==(true,0x29)).count();
+        flush_oem_frame(&fb,&mut bus,&mut on,0,0,1,1).unwrap();
+        assert_eq!(bus.sent.iter().filter(|x|**x==(true,0x29)).count(),count);
+    }
+    #[test]
+    fn reset_and_spi_failures_remain_distinguishable() {
+        let mut bus=Bus::default();
+        let mut r=Reset {fail:true,..Reset::default()};
+        let err=initialize_oem_panel(&mut bus,&mut Delay,&mut r,
+             OemOrientation::OriginalA0);
+        assert_eq!(err,Err(OriginalPanelInitError::Reset("reset")));
+        let mut r=Reset::default();
+        bus.fail=Some(0xB2);
+        let err=initialize_oem_panel(&mut bus,&mut Delay,&mut r,
+             OemOrientation::OriginalA0);
+        assert_eq!(err,Err(OriginalPanelInitError::Bus("bus")));
+    }
+}
