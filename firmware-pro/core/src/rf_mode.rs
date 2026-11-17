@@ -50,10 +50,10 @@ mod tests {
     #[test]
     fn arbitrary_live_mapping_is_not_inferred_from_reset_zeroes() {
         let runtime_map = OemRuntimeModeLookup::new(&[2, 0, 3, 1]);
-        assert_eq!(runtime_map.trim_index(0), Some(2));
-        assert_eq!(runtime_map.trim_index(1), Some(0));
-        assert_eq!(runtime_map.trim_index(2), Some(3));
-        assert_eq!(runtime_map.trim_index(3), Some(1));
+        assert_eq!(runtime_map.trim_index(0), 2);
+        assert_eq!(runtime_map.trim_index(1), 0);
+        assert_eq!(runtime_map.trim_index(2), 3);
+        assert_eq!(runtime_map.trim_index(3), 1);
         assert_eq!(runtime_map.trim_index(4), None);
         assert_eq!(OemRuntimeModeLookup::new(&[]).trim_index(0), None);
     }
@@ -72,18 +72,19 @@ pub const OEM_TRIM_FREQUENCY_WINDOWS_RAW: [(u32, u32); 4] = [
 ];
 
 /// OEM executes unsigned range comparisons and writes indices 0, 1, 2, 3
-/// to its SRAM mapping slot when a window matches. Outside these windows,
-/// the return/assignment path is separate and not a transmission gate.
-pub const fn oem_trim_slot_for_raw_word(raw_tuning_word: u32) -> Option<u8> {
+/// to its SRAM mapping slot when a window matches. If none matches,
+/// 0x08031B7C branches to 0x08031BA2 which writes the initial R7=0;
+/// this is a calibration fallback, **not** a transmit/receive gate.
+pub const fn oem_trim_slot_for_raw_word(raw_tuning_word: u32) -> u8 {
     let mut n = 0;
     while n < 4 {
         let (lower, upper) = OEM_TRIM_FREQUENCY_WINDOWS_RAW[n];
         if raw_tuning_word >= lower && raw_tuning_word <= upper {
-            return Some(n as u8);
+            return n as u8;
         }
         n += 1;
     }
-    None
+    0
 }
 
 #[cfg(test)]
@@ -93,17 +94,17 @@ mod original_rf_window_tests {
     #[test]
     fn all_four_original_windows_include_both_endpoints() {
         for (idx, (lo, hi)) in OEM_TRIM_FREQUENCY_WINDOWS_RAW.iter().enumerate() {
-            assert_eq!(oem_trim_slot_for_raw_word(*lo), Some(idx as u8));
-            assert_eq!(oem_trim_slot_for_raw_word(*hi), Some(idx as u8));
-            assert_eq!(oem_trim_slot_for_raw_word(lo-1), None);
-            assert_eq!(oem_trim_slot_for_raw_word(hi+1), None);
+            assert_eq!(oem_trim_slot_for_raw_word(*lo), idx as u8);
+            assert_eq!(oem_trim_slot_for_raw_word(*hi), idx as u8);
+            assert_eq!(oem_trim_slot_for_raw_word(lo-1), 0);
+            assert_eq!(oem_trim_slot_for_raw_word(hi+1), 0);
         }
     }
 
     #[test]
-    fn gaps_are_unmapped_without_preventing_direct_frequency_tuning() {
+    fn original_out_of_window_fallback_is_zero_not_transmit_lock() {
         for hz in [130_000_000u64, 175_000_000, 349_000_000, 399_500_000, 550_000_000] {
-            assert_eq!(oem_trim_slot_for_raw_word((hz / 10) as u32), None);
+            assert_eq!(oem_trim_slot_for_raw_word((hz / 10) as u32), 0);
         }
         assert_eq!(oem_trim_slot_for_raw_word(145_500_000 / 10), Some(0));
         assert_eq!(oem_trim_slot_for_raw_word(230_000_000 / 10), Some(1));
