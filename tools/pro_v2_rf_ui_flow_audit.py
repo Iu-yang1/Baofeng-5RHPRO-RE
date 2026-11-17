@@ -82,6 +82,16 @@ SITES = {
         (0x0800A474, "mov.w", "r0, #0x190", None),
         (0x0800A478, "bl", "#0x8006800", None),
     ),
+    "keypad_aux_input": (
+        (0x0801099A, "ldr", "r0, [pc", 0x20000096),
+        (0x080109A0, "strb", "r1, [r0, #7]", None),
+        (0x080109A2, "ldr", "r1, [pc", 0x40010808),
+        (0x080109A4, "ldr", "r1, [r1]", None),
+        (0x080109A6, "lsls", "r1, r1, #0x16", None),
+        (0x080109A8, "bmi", "#0x80109ae", None),
+        (0x080109AA, "movs", "r1, #1", None),
+        (0x080109AC, "strb", "r1, [r0, #7]", None),
+    ),
     "keypad_events": (
         (0x08010AB6, "bl", "#0x8010998", None),
         (0x08010ABA, "mov", "r4, r0", None),
@@ -185,6 +195,9 @@ def analyze(v2: bytes, v1: bytes) -> dict:
         },
         "keypad": {
             "scanned_index_0x13_and_0x14_in_ui_event": True,
+            "separate_active_low_gpioa_bit9_sampled": True,
+            "auxiliary_button_flag_sram": "0x2000009D",
+            "auxiliary_button_is_ptt_proved": False,
             "scanned_index_0x0d_in_rf_subroutine": True,
             "physical_legends": "unknown; no key identity asserted",
             "full_menu_rendering_proved": False,
