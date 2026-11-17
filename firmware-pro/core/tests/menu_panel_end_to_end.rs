@@ -4,7 +4,7 @@
 //! software PB12/PA12 signals. Rendering strings are diagnostic and the
 //! physical pad/panel connection still requires on-board measurement.
 
-use uv5rh_pro_core::lcd::{FrameBuffer,FRAME_PIXELS,PanelBus};
+use uv5rh_pro_core::lcd::{FrameBuffer,FRAME_PIXELS};
 use uv5rh_pro_core::menu_lcd::render_menu_diagnostics;
 use uv5rh_pro_core::oem_board_hal::OemSpi2PanelBus;
 use uv5rh_pro_core::oem_menu_ui::{
