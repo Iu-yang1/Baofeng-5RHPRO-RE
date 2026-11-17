@@ -1,0 +1,35 @@
+name: Pro V2 menu edit and renderer source scout
+on:
+  pull_request:
+    paths:
+      - "scripts/pro_v2_menu_ui_edit_scout.py"
+      - ".github/workflows/pro-v2-menu-ui-edit-scout.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "capstone==5.0.6"
+      - name: OEM configuration setter and editor caller neighborhoods
+        run: python scripts/pro_v2_menu_ui_edit_scout.py --focus setter_callers --max-calls 38
+      - name: Rendering callsite candidates
+        run: python scripts/pro_v2_menu_ui_edit_scout.py --focus other_callers --max-calls 8
+      - name: Editor state and menu UI hooks
+        run: |
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_editor --max-lines 220
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_key_loop --max-lines 160
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_state_0 --max-lines 130
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_state_1 --max-lines 175
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_state_2 --max-lines 160
+      - name: OEM menu rendering and cursor
+        run: |
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_page_render --max-lines 190
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_draw_helper --max-lines 170
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_cursor --max-lines 170
+          python scripts/pro_v2_menu_ui_edit_scout.py --focus menu_popup --max-lines 130
