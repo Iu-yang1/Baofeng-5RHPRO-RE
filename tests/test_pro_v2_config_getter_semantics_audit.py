@@ -51,7 +51,7 @@ class OriginalConfigGetterTests(unittest.TestCase):
         import re
         entries=re.findall(r"\b(?:Limited|Direct|Bits)\s*\{|\bConstant\(",table)
         self.assertEqual(len(entries),len(FIRST_OPCODES))
-        self.assertIn("OEM_CONFIG_STORAGE_LEN: usize = 0x26",src)
+        self.assertIn("OEM_CONFIG_STORAGE_LEN: usize = 0x27",src)
         self.assertIn("if *v > max { *v = replacement; }",src)
 
 if __name__=="__main__":
