@@ -8,12 +8,16 @@ Use fixed-callsite and CFG checks before accepting a board HAL identity.
 from __future__ import annotations
 import argparse
 import json
+import struct
 from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from mcu_fingerprint import decoded_payload
 from thumb_window import inspect_window
 from thumb_callsites import find_calls
+from v2_scatterload_decode import decompress_region
+from v2_scatterload_regions import REGION_START
+from thumb_window import BASE
 
 IMAGE = Path("firmware/BF_5RH_501_v2_0_9.dat")
 
@@ -93,12 +97,33 @@ def scout(payload: bytes, names: list[str], limit: int) -> dict:
         }
     return report
 
+def original_sram_mode_table(payload: bytes) -> dict:
+    off=REGION_START-BASE
+    src,dst,size,_=struct.unpack_from("<IIII",payload,off)
+    next_src=struct.unpack_from("<I",payload,off+16)[0]
+    expanded,used=decompress_region(payload[src-BASE:next_src-BASE],size)
+    start=0x20000060-dst
+    if start < 0 or start+0x50 > len(expanded):
+        raise ValueError("OEM RF mode table is outside restored SRAM")
+    values=expanded[start:start+0x50]
+    return {
+        "sram_address":"0x20000060",
+        "bytes":values.hex(" "),
+        "mode_selector_initial":expanded[0x20000069-dst],
+        "mapping_initial_16":list(expanded[0x20000072-dst:0x20000082-dst]),
+        "scope":"only scatterload initialization; runtime state can mutate the mapping",
+        "expanded_bytes":len(expanded),
+        "consumed_compressed":used,
+    }
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--focus",action="append",choices=list(WINDOWS),default=[])
     p.add_argument("--limit",type=int,default=120)
     args=p.parse_args()
-    report=scout(decoded_payload(IMAGE.read_bytes()),args.focus or list(WINDOWS),args.limit)
+    payload=decoded_payload(IMAGE.read_bytes())
+    report=scout(payload,args.focus or list(WINDOWS),args.limit)
+    print('ORIGINAL_SRAM_RF_MODE_TABLE',json.dumps(original_sram_mode_table(payload)))
     for group, data in report.items():
         print("==",group,"==")
         for window in data["windows"]:
