@@ -17,7 +17,13 @@ jobs:
       - run: |
           python scripts/pro_v2_rf_ui_scout.py > pro-v2-rf-ui-scout.txt
           cat pro-v2-rf-ui-scout.txt
+      - name: Verify OEM RF tuning and UI instruction flow
+        run: |
+          python tools/pro_v2_rf_ui_flow_audit.py --json > pro-v2-rf-ui-flow.json
+          cat pro-v2-rf-ui-flow.json
       - uses: actions/upload-artifact@v4
         with:
           name: pro-v2-rf-ui-scout
-          path: pro-v2-rf-ui-scout.txt
+          path: |
+            pro-v2-rf-ui-scout.txt
+            pro-v2-rf-ui-flow.json
