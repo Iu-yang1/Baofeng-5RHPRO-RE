@@ -11,8 +11,11 @@ from v2_pll_runtime_order import reachable_calls
 DATA = {
 "v2": ("firmware/BF_5RH_501_v2_0_9.dat", [
 ("fd_tune",0x08005EA0,0x08005F10),
-("fd_state",0x0800B060,0x0800B110),
+("fd_state",0x0800AFB0,0x0800B160),
+("rf_write_chain",0x0800A3E0,0x0800A510),
+("rf_state_entry",0x0800AF10,0x0800B060),
 ("freq_table",0x0800DD50,0x0800DE90),
+("key_events",0x08010AB0,0x08010BF0),
 ("key_decode",0x08010990,0x08010AB0),
 ("ui_main",0x08015400,0x08015500),
 ]),
