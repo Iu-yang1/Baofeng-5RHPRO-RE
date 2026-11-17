@@ -529,3 +529,21 @@ A further FD6818 TX-related subpath reproduces audio mode 1, REG50 low
 15 bits, REG70 zero and REG30 `0xC1FE`, with I²C error regression.
 This does not establish physical PA/PTT or TDA2822/LM2904B wiring,
 chip identity or a complete flashable radio firmware.
+
+
+### V2 source-backed menu writes, NV persistence and software RF/AF controls (V5)
+
+The [V5 detailed Chinese report](docs/pro-v2-config-nv-setter-restore-rf-audio-hal-v5.zh-CN.md)
+recovers the OEM `0x080164A0` **61-case configuration setter** beside
+the earlier 67-case getter. A caller's third argument equal to 1 commits
+one reconstructed byte to original logical NV through the OEM
+`0x080190E0` journal. Startup restores a reordered 56-byte `0x7980`
+record plus `0x71` (4 bytes) and `0x7A80` (1 byte). The required
+working SRAM span is **39 bytes**, including original byte `+0x26`.
+
+The firmware-source models expose unexpected OEM setter-vs-restore
+address inconsistencies (IDs `0x0D/0x0E/0x17`); no speculative
+on-device repair or writes were performed. PB6 software state and
+FD6818 REG43/13 audio-option control were also recovered at the
+register level, without identifying physical PA/PTT, microphone,
+speaker, or XL9951Q QFN64 package pads.
