@@ -515,3 +515,17 @@ TBB dispatch and source-level RFIC TX/audio register callsites. Host-tested
 original silicon vendor, physical QFN64 pinout, external PA/PTT, TDA2822/
 LM2904B circuits and complete visible menu state machine remain unverified.
 The project still does not ship flashable replacement firmware.
+
+
+### OEM V2 configuration getter and UI/RFIC event reconstruction
+
+The [V2 working-SRAM configuration and TX register report (中文)](docs/pro-v2-config-getter-menu-event-rfic-tx-v4.zh-CN.md)
+reconstructs all **67 original configuration getter cases** at
+`0x0800E454` (byte/bitfield reads, seven original in-RAM bounds repairs,
+constant outputs) using the original Thumb handlers after the embedded
+TBB data. Two keyboard indices `0x13/0x14` now have source-backed
+conditional *software event* handlers, not guessed physical key names.
+A further FD6818 TX-related subpath reproduces audio mode 1, REG50 low
+15 bits, REG70 zero and REG30 `0xC1FE`, with I²C error regression.
+This does not establish physical PA/PTT or TDA2822/LM2904B wiring,
+chip identity or a complete flashable radio firmware.
