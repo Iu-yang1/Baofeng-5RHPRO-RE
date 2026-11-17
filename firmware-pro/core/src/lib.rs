@@ -15,3 +15,5 @@ pub mod spi3_nv;
 pub mod audio;
 
 pub mod oem_menu;
+
+pub mod rf_mode;
