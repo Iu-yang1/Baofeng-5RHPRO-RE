@@ -74,6 +74,30 @@ pub const fn original_trim_bank(values: [u8;4]) -> [u32;4] {
     ]
 }
 
+pub const OEM_SRAM_SECOND_BANK_COUNT_ADDRESS: u32 =
+    OEM_SRAM_RECORD_COUNT_ADDRESS + OEM_NV_RECORD_BYTES as u32;
+pub const OEM_SRAM_SECOND_BANK_VALUES_ADDRESS: u32 =
+    OEM_SRAM_SECOND_BANK_COUNT_ADDRESS + 2;
+
+/// The OEM copies a second 64-word record via 0x08012D36..0x08012D56.
+/// Both banks are opaque per-device NV data, not compiled-in calibration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RawNvRfBankPair {
+    pub first: RawNvRfRecord,
+    pub second: RawNvRfRecord,
+}
+impl RawNvRfBankPair {
+    pub fn from_original_records(
+        first: &[u8; OEM_NV_RECORD_BYTES],
+        second: &[u8; OEM_NV_RECORD_BYTES],
+    ) -> Self {
+        Self {
+            first: RawNvRfRecord::from_original_bytes(first),
+            second: RawNvRfRecord::from_original_bytes(second),
+        }
+    }
+}
+
 /// Four original constants at 0x0800A6CA..0x0800A6DC are copied to
 /// SRAM 0x200102B0. Their physical interpretation remains unverified.
 pub const OEM_RF_WORKING_WORDS: [u32;4] = [
@@ -125,6 +149,19 @@ mod tests {
         assert_eq!(original_trim_hz(0),-2000);
         assert_eq!(original_trim_bank([0x28,0x29,0x60,0]),
                    [0,5,280,(-200i32) as u32]);
+    }
+
+
+    #[test]
+    fn two_64_word_nv_banks_have_back_to_back_layout() {
+        assert_eq!(OEM_SRAM_SECOND_BANK_COUNT_ADDRESS,0x200024FE);
+        assert_eq!(OEM_SRAM_SECOND_BANK_VALUES_ADDRESS,0x20002500);
+        let mut a=[0u8;OEM_NV_RECORD_BYTES];
+        let mut b=[0u8;OEM_NV_RECORD_BYTES];
+        a[2]=0x12;a[3]=0x34;b[2]=0x56;b[3]=0x78;
+        let pair=RawNvRfBankPair::from_original_records(&a,&b);
+        assert_eq!(pair.first.values[0],0x1234);
+        assert_eq!(pair.second.values[0],0x5678);
     }
 
 }
