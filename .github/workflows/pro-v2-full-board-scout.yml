@@ -1,8 +1,5 @@
 name: UV-5RH Pro RF/audio/LCD/MCU evidence scout
 on:
-  push:
-    branches:
-      - research/uv5rhpro-comprehensive-rf-audio-lcd-mcu
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,7 +15,6 @@ jobs:
       - name: Disassemble original V2 static RF and board paths without executing firmware
         run: |
           python scripts/pro_v2_full_board_scout.py > full-board-v2-scout.txt
-          awk '/^REGION next_/ {show=1} /^END_REGION next_/ {show=0} show {print}' full-board-v2-scout.txt | head -700
       - name: Verify original V2 fixed ARM Thumb evidence
         run: |
           python tools/pro_v2_full_board_audit.py --json > full-board-v2-verified.json
