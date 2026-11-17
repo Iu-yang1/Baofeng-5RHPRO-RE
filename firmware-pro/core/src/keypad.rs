@@ -18,6 +18,18 @@ pub const fn second_auxiliary_low(gpioa_idr: u16) -> bool {
     (gpioa_idr & (1u16 << GPIOA_SECOND_INPUT_BIT)) == 0
 }
 
+/// OEM V2 0x08010B46/0x08010B4A switches on keypad indices
+/// 0x13/0x14; the selected branch reads a *pair of configuration IDs*.
+/// This does not assign physical keycap legends or imply every press
+/// enters this branch: stock UI has additional state conditions.
+pub const fn conditional_oem_settings_pair(key: KeyIndex) -> Option<[u8; 2]> {
+    match key.0 {
+        0x13 => Some([0x13, 0x14]),
+        0x14 => Some([0x15, 0x16]),
+        _ => None,
+    }
+}
+
 pub const KEY_COUNT: usize = 22;
 pub const ORIGINAL_SCAN_CODES: [u16; KEY_COUNT] = [
     0x01A8, 0x00E1, 0x0170, 0x0168, 0x0162, 0x0161,
@@ -85,6 +97,16 @@ mod tests {
     fn no_match_remains_unknown() {
         assert_eq!(from_code(0x01FF), None);
         assert_eq!(scan(0, 0), None);
+    }
+
+    #[test]
+    fn conditional_menu_settings_pairs_are_not_physical_key_names() {
+        assert_eq!(conditional_oem_settings_pair(KeyIndex(0x13)),
+                   Some([0x13, 0x14]));
+        assert_eq!(conditional_oem_settings_pair(KeyIndex(0x14)),
+                   Some([0x15, 0x16]));
+        assert_eq!(conditional_oem_settings_pair(KeyIndex(0x15)), None);
+        assert_eq!(conditional_oem_settings_pair(KeyIndex(0xFF)), None);
     }
 
     #[test]

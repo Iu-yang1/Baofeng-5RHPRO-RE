@@ -29,6 +29,12 @@ class FullBoardOriginalEvidenceTests(unittest.TestCase):
         self.assertTrue(r["lcd"]["display_on_only_after_first_frame"])
         self.assertFalse(r["board_gpio_software_only"]["ptt_physical_button_proven"])
         self.assertFalse(r["board_gpio_software_only"]["rf_pa_external_gpio_proven"])
+        self.assertTrue(r["board_gpio_software_only"]["pb1_low_then_high_in_one_routine"])
+        self.assertEqual(r["ui_key_config_bridge"]["input_scan_indices_compared"],
+                         ["0x13","0x14"])
+        self.assertEqual(r["ui_key_config_bridge"]["config_parameter_ids"],
+                         ["0x13","0x14","0x15","0x16"])
+        self.assertFalse(r["ui_key_config_bridge"]["physical_key_legends_known"])
         self.assertFalse(r["mcu"]["silicon_vendor_confirmed"])
 
     def tamper(self,pc):
@@ -50,6 +56,11 @@ class FullBoardOriginalEvidenceTests(unittest.TestCase):
             0x08015132, # orientation conditional jump
             0x0801524C, # orientation 0x60
             0x080153A4, # display-on command
+            0x08009A92, # GPIOB bit1 reset (BRR)
+            0x08009BB4, # GPIOB bit1 set (BSRR)
+            0x08010B48, # key 0x13 to first conditional setting pair
+            0x08010B4C, # key 0x14 to second conditional setting pair
+            0x08010BB4, # OEM config ID 0x15, not a keypad index
             0x0800DA38, # GPIOB6 output set
             0x08011EC6, # GPIOB8 output set
             0x080138D2, # GPIOB14 output set
@@ -88,6 +99,11 @@ class FullBoardOriginalEvidenceTests(unittest.TestCase):
             self.assertIn(x,src["lcd"])
         for x in ("0x6740","0xB3AA","0x3028","0x4048"):
             self.assertIn(x,src["audio"])
+        self.assertIn("OEM_SWITCH_PB1: Pin = Pin { port: Port::B, bit: 1 }",
+                      src["board_v2"])
+        key=(ROOT/"firmware-pro/core/src/keypad.rs").read_text(encoding="utf-8")
+        self.assertIn("pub const fn conditional_oem_settings_pair",key)
+        self.assertIn("0x14 => Some([0x15, 0x16])",key)
         self.assertIn("PANEL_RESET: Pin = Pin { port: Port::A, bit: 8 }",
                       src["board_v2"])
         self.assertIn("write_frequency_hz_with_oem_trim",src["fd6818"])

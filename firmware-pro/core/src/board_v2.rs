@@ -40,6 +40,9 @@ pub const PANEL_RESET: Pin = Pin { port: Port::A, bit: 8 };
 
 /// GPIOB signals with both set/reset callsites in original V2 code.
 /// Their exact physical signal names are not established by static disasm.
+/// OEM 0x08009A8E writes GPIOB BRR bit1; 0x08009BB0 writes
+/// GPIOB BSRR bit1 later in the same software routine. External net unknown.
+pub const OEM_SWITCH_PB1: Pin = Pin { port: Port::B, bit: 1 };
 pub const OEM_SWITCH_PB6: Pin = Pin { port: Port::B, bit: 6 };
 pub const OEM_SWITCH_PB8: Pin = Pin { port: Port::B, bit: 8 };
 /// GPIOB bit14 is set in the RDA5807M initialization neighborhood.
@@ -133,6 +136,7 @@ mod tests {
     #[test]
     fn reconstructed_switches_and_reset_are_port_bit_observations() {
         assert_eq!(PANEL_RESET, Pin { port: Port::A, bit: 8 });
+        assert_eq!(OEM_SWITCH_PB1.mask(), 1 << 1);
         assert_eq!(OEM_SWITCH_PB6.mask(), 1 << 6);
         assert_eq!(OEM_SWITCH_PB8.mask(), 1 << 8);
         assert_eq!(OEM_SWITCH_PB14.mask(), 1 << 14);
