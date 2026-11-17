@@ -62,7 +62,7 @@ pub const fn frequency_hz_to_word(frequency_hz: u64) -> Option<u32> {
 pub enum RficState { Idle, Receive, Transmit }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FrequencyWriteError<E> { UnrepresentableFrequency, UnknownTrimIndex(u8), Bus(E) }
+pub enum FrequencyWriteError<E> { UnrepresentableFrequency, UnknownTrimIndex(u8), UnknownModeSelector(u8), Bus(E) }
 
 pub struct Fd6818<B> {
     bus: B,
@@ -172,6 +172,24 @@ impl<B: I2cRegisterBus> Fd6818<B> {
         let raw = trims.original_bytes.get(mode_index as usize)
             .copied().ok_or(FrequencyWriteError::UnknownTrimIndex(mode_index))?;
         self.write_frequency_hz_with_oem_trim(frequency_hz, raw)
+    }
+
+    /// Follow the OEM's *two-stage runtime index lookup*, rather than
+    /// directly mistaking the SRAM state selector for one of the four
+    /// trim indices. Both the table bytes and state selector come from
+    /// the current runtime state, not the reset-time scatterload image.
+    pub fn write_oem_raw_tuning_for_runtime_selector(
+        &mut self,
+        raw_table_word: u32,
+        trims: &crate::nv_rf::OemFrequencyTrims,
+        live_lookup: &crate::rf_mode::OemRuntimeModeLookup<'_>,
+        runtime_selector: u8,
+    ) -> Result<(), FrequencyWriteError<B::Error>> {
+        let trim_index = live_lookup.trim_index(runtime_selector)
+            .ok_or(FrequencyWriteError::UnknownModeSelector(runtime_selector))?;
+        self.write_oem_corrected_tuning_word_for_mode(
+            raw_table_word, trims, trim_index,
+        )
     }
 
     /// OEM V2 state values cross-check the FD6818 programming guide:
@@ -453,5 +471,55 @@ mod oem_mode_tune_pipeline_tests {
             std::vec![0x39, 0x02, 0x71],
             std::vec![0x38, 0x3A, 0x93],
         ]);
+    }
+}
+
+#[cfg(test)]
+mod oem_two_level_runtime_tuning_tests {
+    extern crate std;
+    use super::*;
+    use crate::nv_rf::OemFrequencyTrims;
+    use crate::rf_mode::OemRuntimeModeLookup;
+    use std::vec::Vec;
+
+    #[derive(Default)]
+    struct Bus { writes: Vec<Vec<u8>> }
+    impl I2cRegisterBus for Bus {
+        type Error = &'static str;
+        fn write(&mut self, _: u8, bytes: &[u8]) -> Result<(), Self::Error> {
+            self.writes.push(bytes.to_vec()); Ok(())
+        }
+        fn write_read(&mut self, _: u8, _: &[u8], _: &mut [u8])
+            -> Result<(), Self::Error> { unreachable!() }
+    }
+
+    #[test]
+    fn original_runtime_state_selects_mapping_byte_before_trim_word() {
+        // Synthetic runtime map: software selector 0 -> trim slot 2, not 0.
+        let lookup=OemRuntimeModeLookup::new(&[2, 0, 3, 1]);
+        let trims=OemFrequencyTrims::new([0x28, 0x27, 0x29, 0x60]);
+        let mut radio=Fd6818::new(Bus::default());
+        radio.write_oem_raw_tuning_for_runtime_selector(
+            0x0012_3456, &trims, &lookup, 0
+        ).unwrap();
+        assert_eq!(radio.into_bus().writes, std::vec![
+            std::vec![0x39,0x00,0x12], std::vec![0x38,0x34,0x5B]
+        ]);
+    }
+
+    #[test]
+    fn unset_runtime_selector_and_bad_trim_index_are_distinct_errors() {
+        let lookup=OemRuntimeModeLookup::new(&[4]);
+        let trims=OemFrequencyTrims::new([0x28;4]);
+        let mut radio=Fd6818::new(Bus::default());
+        assert_eq!(
+            radio.write_oem_raw_tuning_for_runtime_selector(0,&trims,&lookup,1),
+            Err(FrequencyWriteError::UnknownModeSelector(1))
+        );
+        assert_eq!(
+            radio.write_oem_raw_tuning_for_runtime_selector(0,&trims,&lookup,0),
+            Err(FrequencyWriteError::UnknownTrimIndex(4))
+        );
+        assert!(radio.into_bus().writes.is_empty());
     }
 }
