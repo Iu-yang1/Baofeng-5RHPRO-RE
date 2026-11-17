@@ -131,6 +131,21 @@ impl<B: I2cRegisterBus> Fd6818<B> {
         self.write_frequency_word(word).map_err(FrequencyWriteError::Bus)
     }
 
+    /// Combine FD6818's documented 10-Hz word with the OEM V2
+    /// 0xC5C0 four-byte trim formula (signed 50 Hz/step).
+    /// Real per-unit trim bytes must come from the target's NV store.
+    pub fn write_frequency_hz_with_oem_trim(
+        &mut self,
+        frequency_hz: u64,
+        original_trim_byte: u8,
+    ) -> Result<(), FrequencyWriteError<B::Error>> {
+        let base = frequency_hz_to_word(frequency_hz)
+            .ok_or(FrequencyWriteError::UnrepresentableFrequency)?;
+        let trim = crate::nv_rf::original_trim_word(original_trim_byte);
+        self.write_frequency_word(base.wrapping_add(trim))
+            .map_err(FrequencyWriteError::Bus)
+    }
+
     /// OEM V2 state values cross-check the FD6818 programming guide:
     /// idle=0, RX=0xBFF1, TX=0xC1FE, all at OEM register 0x30.
     /// Neither TX path nor board PA enable is implied by this isolated call.
@@ -322,6 +337,19 @@ mod tests {
         rf.select_rfic_state(RficState::Idle).unwrap();
         assert_eq!(rf.into_bus().writes,
                    std::vec![(0x71, std::vec![0x30, 0x00, 0x00])]);
+    }
+
+    #[test]
+    fn frequency_with_stock_trim_writes_frequency_and_signed_trim() {
+        let mut rf = Fd6818::new(Recorder::default());
+        rf.write_frequency_hz_with_oem_trim(409_750_000, 0x29).unwrap();
+        assert_eq!(rf.into_bus().writes, std::vec![
+            (0x71,std::vec![0x39,0x02,0x71]),
+            (0x71,std::vec![0x38,0x3A,0x9D]),
+        ]);
+        let mut rf=Fd6818::new(Recorder::default());
+        rf.write_frequency_hz_with_oem_trim(409_750_000, 0x27).unwrap();
+        assert_eq!(rf.into_bus().writes[1],(0x71,std::vec![0x38,0x3A,0x93]));
     }
 
     #[test]
