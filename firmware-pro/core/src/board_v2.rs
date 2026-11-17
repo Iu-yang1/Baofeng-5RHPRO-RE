@@ -39,6 +39,10 @@ pub const PANEL_SPI2: PanelPins = PanelPins {
     command_data: Pin { port: Port::A, bit: 12 },
 };
 
+/// Standalone active-low bit sampled by original keypad function.
+/// Not yet attributed to PTT or a physical keypad legend.
+pub const AUXILIARY_KEY_GPIO: Pin = Pin { port: Port::A, bit: 9 };
+
 pub const KEYPAD_PORT: Port = Port::C;
 pub const KEYPAD_FIRST_IDR_MASK: u16 = 0x03C0;
 pub const KEYPAD_SECOND_IDR_MASK: u16 = 0x003E;
@@ -82,4 +86,11 @@ mod tests {
         assert_eq!(GNSS_UART.peripheral_register_base, 0x4000_4400);
         assert_eq!(GNSS_UART.nominal_baud, 9600);
     }
+
+    #[test]
+    fn auxiliary_key_is_separate_from_gpio_c_matrix() {
+        assert_eq!(AUXILIARY_KEY_GPIO, Pin { port: Port::A, bit: 9 });
+        assert_eq!(AUXILIARY_KEY_GPIO.mask(), 0x0200);
+    }
+
 }
