@@ -48,6 +48,37 @@ pub const OEM_SPI3_NV_CS_SOFTWARE: Pin = Pin { port: Port::A, bit: 15 };
 /// GPIOB BSRR bit1 later in the same software routine. External net unknown.
 pub const OEM_SWITCH_PB1: Pin = Pin { port: Port::B, bit: 1 };
 pub const OEM_SWITCH_PB6: Pin = Pin { port: Port::B, bit: 6 };
+
+/// OEM 0x0800DA10 toggles software PB6 and mirrors that state in SRAM,
+/// independently of any *proven* PA/PTT or audio net assignment.
+pub const OEM_PB6_SHADOW_SRAM: u32 = 0x2000_17FC;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OemPb6Shadow {
+    pub software_level: bool,
+    /// The OEM clears this halfword at +2 on its true transition.
+    pub activate_counter: u16,
+}
+
+impl OemPb6Shadow {
+    pub const fn new() -> Self {
+        Self { software_level: false, activate_counter: 0 }
+    }
+
+    /// Execute only the original GPIOB6 + SRAM shadow *tail*.
+    /// The source's enabled path first makes three opaque helper calls
+    /// and one delay(0x32); board/application HAL must supply those
+    /// independently. Calling this is not a complete RF TX or PA sequence.
+    pub fn apply_tail<G: BoardGpio>(
+        &mut self, board: &mut G, high: bool,
+    ) -> Result<(), G::Error> {
+        board.set_level(OEM_SWITCH_PB6, high)?;
+        self.software_level=high;
+        if high { self.activate_counter=0; }
+        Ok(())
+    }
+}
+
 pub const OEM_SWITCH_PB8: Pin = Pin { port: Port::B, bit: 8 };
 /// GPIOB bit14 is set in the RDA5807M initialization neighborhood.
 pub const OEM_SWITCH_PB14: Pin = Pin { port: Port::B, bit: 14 };
@@ -150,6 +181,30 @@ mod tests {
         assert_eq!(OEM_JOURNAL_MARKER, 0x0807F800);
     }
 
+
+    #[test]
+    fn software_pb6_tail_updates_only_matching_source_shadow_on_success() {
+        struct Mock {levels: std::vec::Vec<(Pin,bool)>,fail:bool}
+        impl BoardGpio for Mock {
+            type Error=&'static str;
+            fn set_level(&mut self,p:Pin,v:bool)->Result<(),Self::Error> {
+                if self.fail {Err("gpio")} else {self.levels.push((p,v));Ok(())}
+            }
+            fn sample(&mut self,_:Pin)->Result<bool,Self::Error> {Ok(false)}
+        }
+        let mut b=Mock { levels:std::vec::Vec::new(),fail:false };
+        let mut shadow=OemPb6Shadow {software_level:false,activate_counter:15};
+        shadow.apply_tail(&mut b,true).unwrap();
+        assert_eq!(shadow,OemPb6Shadow {software_level:true,activate_counter:0});
+        shadow.activate_counter=42;
+        shadow.apply_tail(&mut b,false).unwrap();
+        assert_eq!(shadow,OemPb6Shadow {software_level:false,activate_counter:42});
+        assert_eq!(b.levels,std::vec![(OEM_SWITCH_PB6,true),(OEM_SWITCH_PB6,false)]);
+        assert_eq!(OEM_PB6_SHADOW_SRAM,0x200017FC);
+        b.fail=true;
+        assert_eq!(shadow.apply_tail(&mut b,true),Err("gpio"));
+        assert_eq!(shadow.software_level,false);
+    }
 
     #[test]
     fn second_ui_input_is_independent_gpioa10_not_assumed_ptt() {
