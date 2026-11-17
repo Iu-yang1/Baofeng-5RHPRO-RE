@@ -104,3 +104,27 @@ register/gamma/orientation init and first-frame display enable. Modules:
 **These are software-port interfaces and simulated transports.** They
 cannot be advertised as proof of a QFN64 pad map, an actual TX-PA bias,
 TDA2822 signal routing, 22 physical key legends or a bootable image.
+
+
+## OEM logical NV read → mode trim → RFIC tuning
+
+The [read-only logical NV calibration pipeline](../docs/pro-v2-nv-calibration-pipeline.zh-CN.md)
+now joins the original four-byte signed-trim encoding to the existing
+FD6818 32-bit raw tuning path without inventing a physical EEPROM/NOR
+driver or mode-to-band mapping.
+
+- `core/src/nv_store.rs` defines `LogicalNvReader` (read only) and
+  `read_oem_nv_snapshot`, which loads four original trim bytes and two
+  130-byte opaque records using caller-supplied profile selectors.
+- `core/src/nv_rf.rs` retains the four original bytes in
+  `OemFrequencyTrims` and exposes bounds-checked mode-index selection.
+  Original bytes above `0x60` remain in memory but evaluate to a
+  zero correction, matching the OEM branch.
+- `core/src/fd6818.rs` now accepts a four-mode trim set in both the
+  original raw-word path and the optional datasheet-backed Hz path.
+  A missing trim index is reported before issuing RFIC bus transactions.
+
+Mock transport tests cover logical addresses and lengths, negative
+frequency corrections, invalid-high neutral behavior, both 64-word
+profile records, sequential read failure stages and FD6818 write order.
+This is not a device-specific NV HAL or a validated RF transceiver image.
