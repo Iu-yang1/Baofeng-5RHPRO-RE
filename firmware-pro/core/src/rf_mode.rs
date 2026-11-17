@@ -58,3 +58,56 @@ mod tests {
         assert_eq!(OemRuntimeModeLookup::new(&[]).trim_index(0), None);
     }
 }
+
+/// Exact four *software frequency windows* in the OEM V2 writer at
+/// 0x08031AEE..0x08031B80. The eight raw comparison constants also
+/// occur in the V1.1.04 original image at 0x08025B60..0x08025B7C.
+/// Values are FD6818 10-Hz raw tuning-word units, NOT a TX permission
+/// table, amplifier GPIO map or complete physical RF front-end.
+pub const OEM_TRIM_FREQUENCY_WINDOWS_RAW: [(u32, u32); 4] = [
+    (13_600_000, 17_400_000), // 136-174 MHz
+    (20_000_000, 26_000_000), // 200-260 MHz
+    (35_000_000, 39_900_000), // 350-399 MHz
+    (40_000_000, 52_000_000), // 400-520 MHz
+];
+
+/// OEM executes unsigned range comparisons and writes indices 0, 1, 2, 3
+/// to its SRAM mapping slot when a window matches. Outside these windows,
+/// the return/assignment path is separate and not a transmission gate.
+pub const fn oem_trim_slot_for_raw_word(raw_tuning_word: u32) -> Option<u8> {
+    let mut n = 0;
+    while n < 4 {
+        let (lower, upper) = OEM_TRIM_FREQUENCY_WINDOWS_RAW[n];
+        if raw_tuning_word >= lower && raw_tuning_word <= upper {
+            return Some(n as u8);
+        }
+        n += 1;
+    }
+    None
+}
+
+#[cfg(test)]
+mod original_rf_window_tests {
+    use super::*;
+
+    #[test]
+    fn all_four_original_windows_include_both_endpoints() {
+        for (idx, (lo, hi)) in OEM_TRIM_FREQUENCY_WINDOWS_RAW.iter().enumerate() {
+            assert_eq!(oem_trim_slot_for_raw_word(*lo), Some(idx as u8));
+            assert_eq!(oem_trim_slot_for_raw_word(*hi), Some(idx as u8));
+            assert_eq!(oem_trim_slot_for_raw_word(lo-1), None);
+            assert_eq!(oem_trim_slot_for_raw_word(hi+1), None);
+        }
+    }
+
+    #[test]
+    fn gaps_are_unmapped_without_preventing_direct_frequency_tuning() {
+        for hz in [130_000_000u64, 175_000_000, 349_000_000, 399_500_000, 550_000_000] {
+            assert_eq!(oem_trim_slot_for_raw_word((hz / 10) as u32), None);
+        }
+        assert_eq!(oem_trim_slot_for_raw_word(145_500_000 / 10), Some(0));
+        assert_eq!(oem_trim_slot_for_raw_word(230_000_000 / 10), Some(1));
+        assert_eq!(oem_trim_slot_for_raw_word(370_000_000 / 10), Some(2));
+        assert_eq!(oem_trim_slot_for_raw_word(435_000_000 / 10), Some(3));
+    }
+}
