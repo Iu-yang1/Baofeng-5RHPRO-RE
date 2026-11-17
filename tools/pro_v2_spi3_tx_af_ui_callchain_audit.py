@@ -42,8 +42,11 @@ SITES={
     "transmit_rfic_and_audio_control_prefix":(
         (0x0800A8E0,"movs","r0, #1",None),
         (0x0800A8E2,"bl","#0x800a310",None),
+        (0x0800A8E8,"ubfx","r1, r0, #0, #0xf",None),
+        (0x0800A8EC,"strh","r1, [r5, #0x12]",None),
         (0x0800A8EE,"movs","r0, #0x50",None),
         (0x0800A8F0,"bl","#0x8005e8c",None),
+        (0x0800A8F4,"movs","r1, #0",None),
         (0x0800A8F6,"movs","r0, #0x70",None),
         (0x0800A8F8,"bl","#0x8005e8c",None),
         (0x0800A8FC,"movw","r1, #0xc1fe",None),
@@ -102,7 +105,7 @@ def verify_original(payload: bytes) -> dict:
             "physical_qfn_pad_mapping_verified":False,
         },
         "rf_audio":{
-            "oem_tx_related_subpath":"0x0800A8E0 audio mode 1 then REG30 0xC1FE",
+            "oem_tx_related_subpath":"0x0800A8E0 audio mode 1, REG50 masked low15, REG70 0, REG30 0xC1FE",
             "additional_rfic_regs":["0x50","0x70"],
             "physical_tx_pa_and_mic_path_verified":False,
             "speaker_tda2822_lm2904b_wiring_verified":False,
