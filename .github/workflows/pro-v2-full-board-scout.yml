@@ -1,0 +1,26 @@
+name: UV-5RH Pro RF/audio/LCD/MCU evidence scout
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install 'capstone==5.0.6'
+      - name: Disassemble original V2 static RF and board paths without executing firmware
+        run: |
+          python scripts/pro_v2_full_board_scout.py > full-board-v2-scout.txt
+      - name: Verify original V2 fixed ARM Thumb evidence
+        run: |
+          python tools/pro_v2_full_board_audit.py --json > full-board-v2-verified.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-board-v2-scout
+          path: |
+            full-board-v2-scout.txt
+            full-board-v2-verified.json

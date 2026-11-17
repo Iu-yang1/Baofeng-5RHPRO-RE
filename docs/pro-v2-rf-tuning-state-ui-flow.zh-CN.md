@@ -84,3 +84,8 @@ cargo check --manifest-path firmware-pro/core/Cargo.toml --lib --offline
 - `firmware-pro/core/src/fd6818.rs`：加入原厂确认的寄存器配置前缀、32 位修正调谐、指南匹配的 10 Hz 单位编码和芯片级 RX/TX/IDLE 状态，新增模拟 I2C/延时测试。
 
 本次不会生成可刷的 `.dat`、`bin` 或号称实机通过的正式替代固件。**下一步仍须继续逆向实际板级 HAL 的 TX PA GPIO、模拟音频、按键物理标签、LCD 控制器初始化/背光，以及 MCU 真实型号和物理 Flash 映射。** 这些不属于可以凭软件宏名猜定的内容。
+
+
+## 2026-11-17 原厂四路频率校正与板级接口后续
+
+[新增综合审计](pro-v2-rf-calibration-audio-lcd-hal.zh-CN.md) 现已核实：NV `0xC5C0` 的四个字节分别按 `5*((b>0x60?0x28:b)-0x28)` **带符号**换算，每步对应 FD6818 原始调谐字 5 个单位即 50 Hz；此外两份逻辑配置记录各含 64 个 big-endian 半字。完整 LCD 软件初始化和另一路 GPIOA10 输入也已加入主控无关 Rust 核心。真实外部 PA/PTT 与 MCU 物理 QFN pad 仍未实测确认。

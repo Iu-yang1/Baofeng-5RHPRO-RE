@@ -10,6 +10,14 @@ pub const fn auxiliary_active_low(gpioa_idr: u16) -> bool {
     (gpioa_idr & (1u16 << AUXILIARY_GPIOA_INPUT_BIT)) == 0
 }
 
+/// OEM 0x0801072E and 0x08030A32 separately inspect GPIOA IDR
+/// bit10 (0x15 left shift reaches sign). This is a modifier/side
+/// input in software, not a verified physical PTT legend.
+pub const GPIOA_SECOND_INPUT_BIT: u8 = 10;
+pub const fn second_auxiliary_low(gpioa_idr: u16) -> bool {
+    (gpioa_idr & (1u16 << GPIOA_SECOND_INPUT_BIT)) == 0
+}
+
 pub const KEY_COUNT: usize = 22;
 pub const ORIGINAL_SCAN_CODES: [u16; KEY_COUNT] = [
     0x01A8, 0x00E1, 0x0170, 0x0168, 0x0162, 0x0161,
@@ -84,6 +92,15 @@ mod tests {
         assert!(auxiliary_active_low(0));
         assert!(!auxiliary_active_low(0x0200));
         assert!(auxiliary_active_low(0xFDFF));
+    }
+
+
+    #[test]
+    fn second_gpioa_input_a10_is_sampled_independently() {
+        assert!(second_auxiliary_low(0));
+        assert!(!second_auxiliary_low(1<<10));
+        assert!(!auxiliary_active_low(1<<9));
+        assert!(second_auxiliary_low(1<<9));
     }
 
 }
