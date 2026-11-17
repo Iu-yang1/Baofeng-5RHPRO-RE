@@ -86,7 +86,7 @@ FIXED = {
         (0x080153A4, "movs", "r0, #0x29", None),
         (0x080153A6, "b.w", "#0x800752c", None),
     ),
-    "key_settings_bridge": (
+    "ui_config_branch": (
         (0x08010B46,"cmp","r4, #0x13",None),
         (0x08010B48,"beq","#0x8010b50",None),
         (0x08010B4A,"cmp","r4, #0x14",None),
