@@ -13,3 +13,5 @@ pub mod nv_store;
 pub mod spi3_nv;
 
 pub mod audio;
+
+pub mod oem_menu;
