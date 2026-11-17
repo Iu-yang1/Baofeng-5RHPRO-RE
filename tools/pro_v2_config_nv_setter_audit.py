@@ -48,7 +48,7 @@ SITES={
         (0x08016788,"bl","#0x80190e0",None),
     ],
     "working_main_restore":[
-        (0x0801049E,"mov.w","r4, #0x7980",None),
+        (0x0801049C,"mov.w","r4, #0x7980",None),
         (0x080104A2,"movs","r1, #0x38",None),
         (0x080104A6,"bl","#0x80141dc",None),
         (0x080104BA,"ldr","r6, [pc",0x20004580),
