@@ -477,3 +477,15 @@ The presence of a firmware updater is **not** proof that a full Flash backup or 
 ## Related work
 
 - [sophiel-meow/bf-5rh-firmware-open](https://github.com/sophiel-meow/bf-5rh-firmware-open) — experimental Rust firmware for **UV-5RH/5RM**, not a drop-in UV-5RH Pro image. The project is GPL-3.0; direct source reuse requires honoring its license.
+
+
+### OEM V2 logical NV calibration integration
+
+The [independent NV-to-FD6818 integration report (中文)](docs/pro-v2-nv-calibration-pipeline.zh-CN.md)
+adds a host-testable **read-only logical NV backend** to
+`firmware-pro/core`. It loads original four-byte frequency trims from
+logical `0xC5C0` and two caller-selected `0x82`-byte opaque profiles
+(`0x7A90 + 0x98*selector`), then selects the signed 32-bit correction
+by original software index before writing the FD6818 `0x39/0x38` word.
+The physical nonvolatile device, per-radio values, real mode-to-band
+mapping, PA/PTT wiring and XL9951Q MCU port remain unidentified.
