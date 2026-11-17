@@ -83,3 +83,24 @@ This is an executable, unit-tested **RFIC-level core**. It is not a
 physically verified PA/PTT/audio HAL or a complete radio/UI firmware. LCD
 and keypad are still software-level contracts, not MCU startup/physical
 pad validation.
+
+
+## OEM V2 RF calibration, AF routing and LCD startup (2026-11-17)
+
+The [full Chinese read-only evidence report](../docs/pro-v2-rf-calibration-audio-lcd-hal.zh-CN.md)
+adds the original four-mode signed 50 Hz trim formula from NV logical
+`0xC5C0`, two opaque 64-word NV records, FD6818 audio register
+`0x47/0x48/0x43` transactions, and the complete original LCD reset,
+register/gamma/orientation init and first-frame display enable. Modules:
+
+- `core/src/nv_rf.rs`: four raw trim bytes, 50 Hz signed compensation,
+  two 0x82-byte original NV record parsers and OEM raw constants
+- `core/src/fd6818.rs`: compensated RFIC frequency write
+- `core/src/audio.rs`: original RFIC audio mode cached-word behavior
+- `core/src/lcd.rs`: SPI2 panel startup orchestration and display-on
+- `core/src/board_v2.rs`, `keypad.rs`: source-backed GPIO software bit
+  roles, including independently sampled A9/A10 inputs
+
+**These are software-port interfaces and simulated transports.** They
+cannot be advertised as proof of a QFN64 pad map, an actual TX-PA bias,
+TDA2822 signal routing, 22 physical key legends or a bootable image.

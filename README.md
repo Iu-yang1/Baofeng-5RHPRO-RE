@@ -207,6 +207,34 @@ python tools/pro_v2_rf_ui_flow_audit.py --json
 cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
 ```
 
+### UV-5RH Pro: recovered RF trim, NV banks, AF routing and full LCD startup (V2)
+
+The [detailed offline board/HAL audit (中文)](docs/pro-v2-rf-calibration-audio-lcd-hal.zh-CN.md)
+verifies four OEM frequency-trim bytes read at logical NV address `0xC5C0`.
+The original firmware computes **signed `5*(clamp_high_to_40(b)-40)`
+raw tuning-word units**, equivalent to **50 Hz per stored byte step**
+against FD6818's documented 10 Hz frequency encoding. The two separate
+0x82-byte NV profiles each hold 64 big-endian u16 words; their per-unit
+contents and field semantics remain unknown.
+
+The independent `no_std` core now implements that OEM tuning correction,
+two opaque NV profile records, and RFIC AF register transactions
+(`0x47/0x48/0x43`). It also reproduces the original SPI2 LCD **PA8
+high/low/high reset sequence, full power/frame-rate/gamma/orientation/
+RGB565 setup, and `0x29` display-on after the first completed frame**.
+Software GPIOA9 and GPIOA10 are separate input channels and GPIOB/PA1/PD2
+output candidates are recorded without inventing physical assignments.
+
+**Unresolved:** XL9951Q physical silicon/QFN pad map, externally wired
+PTT/PA/speaker amplifier, actual NV calibration bytes, keycap labels,
+and full radio/menu behavior. This is **Host-tested firmware logic, not
+a validated board HAL, nor a flashable release**.
+
+```sh
+python tools/pro_v2_full_board_audit.py --json
+cargo test --manifest-path firmware-pro/core/Cargo.toml --offline
+```
+
 ## Current status
 
 **P0: read-only stock firmware reverse engineering; P1: host-tested MCU-neutral alternative-firmware core started.**
