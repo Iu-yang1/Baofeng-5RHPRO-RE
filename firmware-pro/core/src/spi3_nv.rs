@@ -8,6 +8,28 @@
 use crate::board_v2::{BoardGpio, OEM_SPI3_NV_CS_SOFTWARE};
 use crate::nv_store::LogicalNvReader;
 
+/// OEM V2 SPI3 setup at 0x08006B80..0x08006BC2 passes nine u16
+/// configuration fields through 0x080317DC and then enables SPI via
+/// 0x080317B2. These are *software register values* only, not verified
+/// clock rates, pinmux electrical signals, or XL9951Q QFN pad positions.
+pub const OEM_SPI3_REGISTER_BASE: u32 = 0x4000_3C00;
+pub const OEM_SPI3_GPIOB_PIN_MASK: u16 = 0x0038; // software GPIOB 3/4/5
+pub const OEM_SPI3_CR1_PRESERVED_BITS: u16 = 0x3040;
+pub const OEM_SPI3_CR1_CONFIG_OR: u16 = 0x0317;
+pub const OEM_SPI3_CR1_SPE: u16 = 0x0040;
+pub const OEM_SPI3_CR2_CLEAR_MASK: u16 = 0x0800;
+pub const OEM_SPI3_CRC_POLYNOMIAL: u16 = 7;
+
+/// The original combine routine ORs configuration halfwords together
+/// with preserved bits of the previous SPI3 CR1, then the next caller
+/// writes SPE=1. This is a pure register-level reference, not a HAL.
+pub const fn oem_spi3_cr1_after_configuration(previous: u16) -> u16 {
+    (previous & OEM_SPI3_CR1_PRESERVED_BITS) | OEM_SPI3_CR1_CONFIG_OR
+}
+pub const fn oem_spi3_cr1_after_enable(previous: u16) -> u16 {
+    oem_spi3_cr1_after_configuration(previous) | OEM_SPI3_CR1_SPE
+}
+
 pub const OEM_NOR_READ_OPCODE: u8 = 0x03;
 pub const OEM_NOR_READ_DUMMY: u8 = 0xFF;
 pub const OEM_NOR_ADDRESS_BITS: u8 = 24;
@@ -213,5 +235,23 @@ mod tests {
         let snapshot = read_oem_nv_snapshot(&mut reader, [2, 3]).unwrap();
         assert_eq!(snapshot.frequency_trims.original_bytes, [0x28; 4]);
         assert_eq!(snapshot.raw_profiles.second.values.len(), 64);
+    }
+}
+
+#[cfg(test)]
+mod original_spi3_register_init_tests {
+    use super::*;
+
+    #[test]
+    fn preserved_and_or_config_fields_match_original_v2_setup() {
+        assert_eq!(OEM_SPI3_REGISTER_BASE, 0x40003C00);
+        assert_eq!(OEM_SPI3_GPIOB_PIN_MASK, (1<<3)|(1<<4)|(1<<5));
+        assert_eq!(OEM_SPI3_CR1_CONFIG_OR, 0x0317);
+        assert_eq!(oem_spi3_cr1_after_configuration(0), 0x0317);
+        assert_eq!(oem_spi3_cr1_after_enable(0), 0x0357);
+        assert_eq!(oem_spi3_cr1_after_configuration(0xFFFF), 0x3357);
+        assert_eq!(oem_spi3_cr1_after_enable(0xFFFF), 0x3357);
+        assert_eq!(OEM_SPI3_CR2_CLEAR_MASK, 1<<11);
+        assert_eq!(OEM_SPI3_CRC_POLYNOMIAL, 7);
     }
 }
