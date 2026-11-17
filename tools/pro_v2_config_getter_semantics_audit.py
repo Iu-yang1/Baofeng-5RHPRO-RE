@@ -137,7 +137,8 @@ def verify_original(payload:bytes)->dict:
         (0x0800E60E,"ubfx","r0, r0, #6, #1"),
         (0x0800E614,"movs","r0, #1"),
     ]
-    check_sites(payload,source_shared)
+    check_sites(payload,[(pc, mnemonic, operand, None)
+                         for pc, mnemonic, operand in source_shared])
     for idx in [32,40,41]:
         if TBB_BASE+MENU_OFFSETS[idx]*2 != 0x0800E4D4:
             raise ValueError("original config default-zero branch changed")
