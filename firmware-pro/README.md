@@ -211,3 +211,26 @@ it is not a claim that physical SPI3 NOR writes or recovery were tested.
 Further V5 work adds a source-compatible PB6 GPIO/shadow fragment
 and a REG43/13 audio-control subpath. External PA/PTT/analog audio
 and XL9951Q package pinouts remain physically unverified.
+
+
+## V6 OEM menu monitor and independent LCD/UI HAL
+
+[Detailed V6 evidence and compatibility cases](../docs/pro-v2-menu-ui-nv-compat-board-hal-v6.zh-CN.md)
+
+- `core/src/oem_menu_ui.rs`: source-checked OEM `0x080167B8` UI
+  status/selection poll (including RAM `0x20000104` bit7) and an
+  explicitly *independent* editable config browser with draft preview,
+  commit/cancel and source-compatible opaque setter callbacks
+- `core/src/menu_lcd.rs`: diagnostic RGB565 text and numeric fields
+  that paint existing 160×128 framebuffer pixels; **not** OEM label/font
+  reconstruction
+- `core/src/oem_nv_compat.rs`: choose original setter address or
+  loader-consistent logical NV destination; all 57 writable config IDs
+  covered by a simulated full boot/edit/reboot integration matrix
+- `core/src/oem_board_hal.rs`: source-based GPIO register address
+  adapter, SPI3 configuration, SPI2 panel protocol, PA8 reset, two-pass
+  GPIOC keypad scan, standard ARM CPUID read abstraction
+
+`RegisterIo` and physical peripheral clocks/pinmux still require
+an independently verified XL9951Q platform driver. No assumptions
+about actual package pads, PA/PTT switch wiring, or analog audio.
