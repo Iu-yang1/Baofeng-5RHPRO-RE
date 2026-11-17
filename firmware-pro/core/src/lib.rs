@@ -21,3 +21,7 @@ pub mod rf_mode;
 pub mod oem_config_getter;
 
 pub mod oem_menu_event;
+
+pub mod oem_config_setter;
+
+pub mod oem_config_restore;

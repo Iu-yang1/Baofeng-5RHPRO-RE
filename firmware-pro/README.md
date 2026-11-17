@@ -188,3 +188,26 @@ adds these host-verifiable components to the existing `no_std` core:
 
 The full navigable UI menu, external analog audio and verified XL9951Q
 QFN64 physical HAL remain unfinished evidence-backed work.
+
+
+## OEM V5 configuration transaction and board-software contracts
+
+[Source-evidence V5 (Chinese)](../docs/pro-v2-config-nv-setter-restore-rf-audio-hal-v5.zh-CN.md)
+extends the `no_std` core with `oem_config_setter.rs` (61 OEM setter
+cases, raw bitfield encoding, optional **single-byte** logical NOR
+journal request, no-op cases and opaque side-effect notifications),
+`oem_config_restore.rs` (the three original logical NV read groups,
+34 direct main-record byte remappings and startup repairs), and a
+39-byte `OemWorkingConfig` buffer.
+
+The original getter is still 67 cases; a getter range is not a
+writable-menu count. The independent core explicitly preserves raw
+OEM setter/restore inconsistencies, notably the two swapped startup
+source bytes for working offsets `+0x0C/+0x0D` and the mismatch for
+setter ID `0x17` / working `+0x20`. The `LogicalNvJournal`
+interface must be bound to an independently verified board backend;
+it is not a claim that physical SPI3 NOR writes or recovery were tested.
+
+Further V5 work adds a source-compatible PB6 GPIO/shadow fragment
+and a REG43/13 audio-control subpath. External PA/PTT/analog audio
+and XL9951Q package pinouts remain physically unverified.

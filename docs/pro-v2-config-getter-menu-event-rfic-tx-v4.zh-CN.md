@@ -89,3 +89,10 @@ cargo check --manifest-path firmware-pro/core/Cargo.toml --lib --offline
 `tests/test_pro_v2_config_getter_semantics_audit.py` 覆盖 67 处跳转首指令及变异，限制修正路径、常量分支、Rust 结构跨度；在此之前还保留了 V1/V2 校准查表、SPI3 和完整 LCD 既有离线回归。
 
 **交付状态：** 67-case 配置读取 + 局部 UI 特殊键软件事件 + TX 相关 RFIC 寄存器序列实现；物理板级 HAL 与完整菜单仍是待后续取证工程。
+
+
+> **V5 校正（2026-11-17）：** 本报告 38 字节仅是 `0x0800E454`
+> 配置 getter 最小访问范围。经原厂上电恢复 `0x080105DC`
+> 进一步核对，工作结构还会写 `+0x26`，因此独立核心实际
+> 分配 **39 字节**。61 项 setter 的 NV 保存与字段重排见
+> [V5 取证报告](pro-v2-config-nv-setter-restore-rf-audio-hal-v5.zh-CN.md)。

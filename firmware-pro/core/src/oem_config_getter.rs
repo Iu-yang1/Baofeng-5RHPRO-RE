@@ -8,8 +8,9 @@
 use crate::oem_menu::OriginalConfigId;
 
 pub const OEM_CONFIG_SRAM_BASE: u32 = 0x2000_4580;
-/// Highest byte offset used by the getter is +0x25.
-pub const OEM_CONFIG_STORAGE_LEN: usize = 0x26;
+/// The getter reaches +0x25, but original startup also writes +0x26.
+/// Preserve that extra working byte; it is not exposed by the 67-ID getter.
+pub const OEM_CONFIG_STORAGE_LEN: usize = 0x27;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConfigRead {

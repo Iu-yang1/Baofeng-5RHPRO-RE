@@ -1,0 +1,67 @@
+name: Pro V2 NV/menu RF/audio research scout
+on:
+  pull_request:
+    paths:
+      - "scripts/pro_v2_nv_menu_rf_audio_scout.py"
+      - "scripts/pro_v2_menu_sram_nor_xrefs.py"
+      - ".github/workflows/pro-v2-nv-menu-rf-audio-scout.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "capstone==5.0.6"
+      - name: Source callsite candidates
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus callers
+      - name: Config writer vicinity
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_followup --max-lines 190
+      - name: Config adjacent handlers
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_neighbor --max-lines 180
+      - name: TX state entry
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus tx_prefix --max-lines 170
+      - name: TX RFIC switch
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus rfic_switch --max-lines 170
+      - name: TX key monitor
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus key_poll --max-lines 160
+      - name: Audio switch
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus audio --max-lines 160
+      - name: PB6 switch
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus pb6 --max-lines 80
+      - name: PB1 switch and restore
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus pb1 --max-lines 60
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus pb1_restore --max-lines 60
+      - name: Identity xrefs
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus identity
+      - name: Working menu SRAM and GPIOB literal references
+        run: python scripts/pro_v2_menu_sram_nor_xrefs.py --kind refs --max-each 85
+      - name: NOR/journal callsite neighborhoods
+        run: python scripts/pro_v2_menu_sram_nor_xrefs.py --kind nor-callers --max-each 8
+      - name: Audio/PB6 callsite neighborhoods
+        run: python scripts/pro_v2_menu_sram_nor_xrefs.py --kind mode-callers --max-each 20
+      - name: Working config SRAM owner callchains
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus menu_ram_owner_a --max-lines 160
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus menu_ram_owner_b --max-lines 100
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus menu_ram_owner_c --max-lines 180
+      - name: NV flash journal original function
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus nv_transactions --max-lines 150
+      - name: RX AF and RFIC continuation
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus tx_audio_tail --max-lines 170
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus rx_audio_paths --max-lines 180
+      - name: Config setter 61-way dispatcher and real case branches
+        run: |
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_setter_dispatch --max-lines 45
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_setter_cases --max-lines 290
+          python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_setter_tail --max-lines 100
+      - name: Config restore 0x7980 and 0x7A80 tail
+        run: python scripts/pro_v2_nv_menu_rf_audio_scout.py --focus config_restore_tail --max-lines 170
