@@ -66,7 +66,7 @@ Simulated reboot → original startup mapping → compare working bytes
 | 部件 | 完成的接口和已知地址 | 仍需确认 |
 |---|---|---|
 | GPIO | `OemCompatibleGpio<RegisterIo>`；GPIOA/B/C/D/E 映射；IDR `+0x08`，BSRR `+0x10`，BRR `+0x14` | 实际 XL9951Q 寄存器兼容性与 QFN PAD |
-| SPI3 | 从 `0x40003C00` 读旧 CR1/CR2，按原厂 `0x3040/0x0317/0x0800/CRC7` 生成配置并置 SPE | SPI3 时钟源、GPIOB3/4/5 复用、电气时序和 NOR 器件 |
+| SPI3 | 从 `0x40003C00` 以 **16 位 MMIO** 读取旧 CR1/CR2，按原厂 `0x3040/0x0317/0x0800/CRC7` 生成配置并通过半字写入置 SPE（与原厂 `STRH` 宽度一致） | SPI3 时钟源、GPIOB3/4/5 复用、电气时序和 NOR 器件 |
 | LCD SPI2 | `OemSpi2PanelBus` 将命令/数据真正转换为 GPIO PB12 软件 CS、PA12 D/C 和 SPI2 字节传输；失败时释放 CS | 物理 LCD 型号、引脚连通与线速 |
 | LCD 复位 | `OemPanelResetAdapter` 根据原厂 PA8 电平序列和原始延时参数 `0x14/0xC8/0x14` 运行 | 原始延时单位与实际面板极性 |
 | 键盘 | `OemMatrixPort` 接入 GPIOC 两阶段采样与 22 个原厂扫描码查询，保留扫描阶段错误 | 两次扫描之间的 GPIO 模式切换、实体键帽 |
