@@ -68,6 +68,8 @@ jobs:
         run: python tools/pro_v2_mode_ui_contract_audit.py --json > pro-v2-mode-menu-evidence.json
       - name: Audit SPI3 initialization, RFIC TX/audio and GPIO/UI original callsites
         run: python tools/pro_v2_spi3_tx_af_ui_callchain_audit.py --json > pro-v2-spi3-tx-audio-ui-evidence.json
+      - name: Verify original V2 67-case configuration getter and field repairs
+        run: python tools/pro_v2_config_getter_semantics_audit.py --json > pro-v2-config-getter-evidence.json
       - name: Upload firmware metadata only
         uses: actions/upload-artifact@v4
         with:
@@ -87,4 +89,5 @@ jobs:
             pro-v2-rf-windows-evidence.json
             pro-v2-mode-menu-evidence.json
             pro-v2-spi3-tx-audio-ui-evidence.json
+            pro-v2-config-getter-evidence.json
           if-no-files-found: error

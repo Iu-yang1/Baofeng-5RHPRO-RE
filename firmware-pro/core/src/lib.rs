@@ -17,3 +17,7 @@ pub mod audio;
 pub mod oem_menu;
 
 pub mod rf_mode;
+
+pub mod oem_config_getter;
+
+pub mod oem_menu_event;

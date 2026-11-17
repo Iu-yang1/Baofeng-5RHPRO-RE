@@ -167,3 +167,24 @@ and `tools/pro_v2_*_audit.py`. FD6818 TX-related register sequences
 and GPIO output bits are software facts; they do not establish a real
 PA bias control, analog microphone/speaker wiring, physical PTT button,
 complete menu state machine, MCU vendor or flashable system HAL.
+
+
+## OEM V2 working-configuration / special key and RFIC-TX prefix
+
+The [source reconstruction](../docs/pro-v2-config-getter-menu-event-rfic-tx-v4.zh-CN.md)
+adds these host-verifiable components to the existing `no_std` core:
+
+- `oem_config_getter.rs`: 67 original configuration IDs mapped to the
+  `0x20004580` working SRAM field layout, with seven OEM bounds repairs
+  (they modify RAM, **not** proven to commit any NOR settings)
+- `oem_menu_event.rs`: software-only outcomes for original scanned key
+  indices `0x13/0x14` conditioned on their source-backed configuration
+  fields and three opaque helper results; no invented physical keycaps
+- `audio.rs`: original TX-related RFIC register prefix, audio mode 1,
+  REG50 low 15 bits, REG70=0, REG30=0xC1FE; distinct from a board-level
+  PA/PTT state machine
+- `tools/pro_v2_config_getter_semantics_audit.py`: all 67 original
+  Thumb-case entries plus source-aligned event conditions, checked in CI.
+
+The full navigable UI menu, external analog audio and verified XL9951Q
+QFN64 physical HAL remain unfinished evidence-backed work.

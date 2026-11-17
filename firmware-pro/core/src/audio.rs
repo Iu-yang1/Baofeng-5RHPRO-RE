@@ -44,6 +44,26 @@ impl OriginalAudioCache {
         Ok(())
     }
 
+    /// One source-verified OEM TX-related *RFIC register subpath* at
+    /// 0x0800A8E0..0x0800A902. This is not a complete PTT, antenna
+    /// switch, physical PA bias or analog microphone sequence.
+    ///
+    /// OEM: audio mode=1 -> REG50 cached low 15 bits ->
+    ///       REG70=0 -> REG30=0xC1FE. The exact chip register
+    /// sequence is retained; a failure stops further writes.
+    pub fn apply_oem_rfic_tx_prefix<B: I2cRegisterBus>(
+        &mut self,
+        rf: &mut Fd6818<B>,
+        cached_reg50: u16,
+    ) -> Result<u16, B::Error> {
+        self.apply_mode(rf, 1)?;
+        let reg50 = cached_reg50 & 0x7FFF;
+        rf.write_register(0x50, reg50)?;
+        rf.write_register(0x70, 0)?;
+        rf.write_register(0x30, crate::fd6818::OEM_TX_STATE_WORD)?;
+        Ok(reg50)
+    }
+
     /// Original 0x0800A398..0x0800A3A8 toggles raw register 0x43
     /// between these two control words. Physical audio meaning unknown.
     pub fn apply_reg43_variant<B: I2cRegisterBus>(
@@ -114,6 +134,35 @@ mod tests {
             (0x71,std::vec![0x43,0x40,0x48]),
         ]);
     }
+    #[test]
+    fn source_backed_rfic_tx_prefix_register_order_and_cache_mask() {
+        let mut audio=OriginalAudioCache::new(0xE2F0,0xABCD);
+        let mut rf=Fd6818::new(Recorder::default());
+        let cache=audio.apply_oem_rfic_tx_prefix(&mut rf,0xFFFF).unwrap();
+        assert_eq!(cache,0x7FFF);
+        assert_eq!(audio.reg47,0xE1F0);
+        assert_eq!(rf.into_bus().packets,std::vec![
+            (0x71,std::vec![0x47,0xE1,0xF0]),
+            (0x71,std::vec![0x48,0xAB,0xCD]),
+            (0x71,std::vec![0x50,0x7F,0xFF]),
+            (0x71,std::vec![0x70,0x00,0x00]),
+            (0x71,std::vec![0x30,0xC1,0xFE]),
+        ]);
+    }
+
+    #[test]
+    fn rfic_tx_prefix_bus_failure_does_not_continue_to_tx_state_word() {
+        let mut audio=OriginalAudioCache::new(0,0);
+        let mut rf=Fd6818::new(Recorder {
+            fail_at:Some(3), ..Recorder::default()
+        });
+        assert_eq!(audio.apply_oem_rfic_tx_prefix(&mut rf,0x8ABC),Err("I2C"));
+        let bus=rf.into_bus();
+        assert_eq!(bus.attempts,3);
+        assert_eq!(bus.packets.len(),2);
+        assert_eq!(audio.reg47,0x0100);
+    }
+
     #[test]
     fn bus_failure_keeps_unsent_cache_and_does_not_continue() {
         let mut c=OriginalAudioCache::new(0x0000,0x0000);

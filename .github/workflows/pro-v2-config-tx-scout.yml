@@ -1,0 +1,32 @@
+name: Pro V2 config and TX research scout
+on:
+  pull_request:
+    paths:
+      - "scripts/pro_v2_config_tx_scout.py"
+      - ".github/workflows/pro-v2-config-tx-scout.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disassemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install "capstone==5.0.6"
+      - name: OEM configuration getter
+        run: python scripts/pro_v2_config_tx_scout.py --focus config_getter
+      - name: OEM configuration handlers
+        run: python scripts/pro_v2_config_tx_scout.py --focus config_handlers
+      - name: OEM menu event
+        run: python scripts/pro_v2_config_tx_scout.py --focus ui_event_branch
+      - name: OEM TX state enter
+        run: python scripts/pro_v2_config_tx_scout.py --focus tx_state_enter
+      - name: OEM RFIC TX state
+        run: python scripts/pro_v2_config_tx_scout.py --focus tx_state_rfic
+      - name: OEM TX key polling
+        run: python scripts/pro_v2_config_tx_scout.py --focus tx_key_wait
