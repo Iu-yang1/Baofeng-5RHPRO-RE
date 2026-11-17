@@ -128,3 +128,16 @@ Mock transport tests cover logical addresses and lengths, negative
 frequency corrections, invalid-high neutral behavior, both 64-word
 profile records, sequential read failure stages and FD6818 write order.
 This is not a device-specific NV HAL or a validated RF transceiver image.
+
+
+### Source-backed SPI3 logical NV reads (software-only)
+
+V2 application routine `0x080141DC` has now been checked against the
+original instruction bytes: it asserts software GPIOA15 CS, issues
+SPI3 `0x03` + three address bytes and transfers `0xFF` for each
+received NV byte, before deasserting CS. The five OEM byte calls target
+`0x08031814`. `core/src/spi3_nv.rs` implements this read-only
+transport over an abstract byte-exchange bus and `BoardGpio`, retaining
+hardware error information and without granting erase/program capability.
+The matching [instruction audit](../docs/pro-v2-nv-calibration-pipeline.zh-CN.md)
+is checked in CI. This identifies software GPIO bits, not QFN physical pads.
