@@ -66,3 +66,20 @@ The independent RF application logic still needs Hz-to-FD6818 tuning math,
 FD6818 RX/TX state calibration, PA control, RF timing, menu/key legends,
 LCD init/reset/rotation and target-CPU startup. These are explicit unverified
 implementation tasks, not additional default locks on supported functions.
+
+
+## OEM RFIC tune/state core progress (2026-11-17)
+
+[Detailed RF tuning and UI control-flow audit](../docs/pro-v2-rf-tuning-state-ui-flow.zh-CN.md)
+now validates OEM V2's 32-bit raw table-based tune plus correction,
+registers `0x39/0x38`, and I2C write sequences for OEM state register
+`0x30`: idle `0x0000`, RX `0xBFF1`, TX `0xC1FE`. FD6818
+REV.1.0.0 guide documents a 10 Hz frequency word quantum. We expose both
+`write_frequency_hz` and `write_oem_corrected_tuning_word` so unknown
+board calibration is not discarded; the original setup prefix is a separate
+`apply_oem_setup_prefix` with an injected delay contract.
+
+This is an executable, unit-tested **RFIC-level core**. It is not a
+physically verified PA/PTT/audio HAL or a complete radio/UI firmware. LCD
+and keypad are still software-level contracts, not MCU startup/physical
+pad validation.

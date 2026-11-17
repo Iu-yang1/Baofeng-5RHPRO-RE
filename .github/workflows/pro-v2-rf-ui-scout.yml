@@ -1,8 +1,6 @@
 name: Pro V2 RF and UI static-disassembly research
 on:
-  push:
-    branches:
-      - research/pro-v2-rf-tune-ptt-ui-paths
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -16,11 +14,9 @@ jobs:
       - run: python -m pip install 'capstone==5.0.6'
       - run: |
           python scripts/pro_v2_rf_ui_scout.py > pro-v2-rf-ui-scout.txt
-          cat pro-v2-rf-ui-scout.txt
       - name: Verify OEM RF tuning and UI instruction flow
         run: |
           python tools/pro_v2_rf_ui_flow_audit.py --json > pro-v2-rf-ui-flow.json
-          cat pro-v2-rf-ui-flow.json
       - uses: actions/upload-artifact@v4
         with:
           name: pro-v2-rf-ui-scout
