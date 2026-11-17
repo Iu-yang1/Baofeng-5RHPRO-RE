@@ -22,6 +22,7 @@ REGIONS = {
    (0x08006140,0x08006188),(0x080328E0,0x08032970),
   ],
   "key_consumers": [
+   (0x0801071E,0x0801078C),(0x08030A08,0x08030A88),
    (0x0801071C,0x0801078C),(0x08010850,0x080108D0),
    (0x08030A20,0x08030A84),(0x08010C20,0x08010CE8),
   ],
@@ -76,11 +77,17 @@ def print_literal_sites(payload):
   print("MMIO",name,hex(addr),"pool",len(locs),"ldr_candidates",len(sites),
         "pcs",*[hex(x) for x in sites[:75]])
 def print_calls(payload):
- targets=[0x08005E8C,0x08005E42,0x08005EC6,0x08010998,
+ targets=[0x0800DA10,0x08011EAC,0x080328E0,0x08012BAC,0x0801501C,0x0801071E,0x0800A310,0x08005E8C,0x08005E42,0x08005EC6,0x08010998,
           0x0800752C,0x0800755C,0x0800AFE4,0x0800A428,
           0x0800A310,0x0800B51C,0x0800DE08]
  for k,rows in find_calls(payload,targets).items():
-  print("CALLS",k,len(rows),*[v["call_pc"] for v in rows[:150]])
+  print("CALLS",k,len(rows),*[v["call_pc"] for v in rows[:45]])
+  for row in rows[:8]:
+   pc=int(row["call_pc"],16)
+   try:
+    inst=inspect_window(payload,max(BASE,pc-14),pc+6)
+    print("CALL_CONTEXT",k,row["call_pc"],*[f'{e["pc"]} {e["mnemonic"]} {e["operands"]}' for e in inst[-9:]])
+   except Exception: pass
 def main():
  payload=decoded_payload(IMAGE.read_bytes())
  dst,init=get_sram(payload)
