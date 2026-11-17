@@ -2,6 +2,14 @@
 //!
 //! Logical indices are proved from the original 22-entry scan table.
 //! Button legends and QFN64 pad numbers are NOT yet established.
+/// OEM V2 0x0801099A..0x080109AC additionally samples GPIOA IDR bit 9
+/// active-low, setting a flag at SRAM 0x2000009D. Its physical button
+/// identity (including whether this is PTT) is not yet proven.
+pub const AUXILIARY_GPIOA_INPUT_BIT: u8 = 9;
+pub const fn auxiliary_active_low(gpioa_idr: u16) -> bool {
+    (gpioa_idr & (1u16 << AUXILIARY_GPIOA_INPUT_BIT)) == 0
+}
+
 pub const KEY_COUNT: usize = 22;
 pub const ORIGINAL_SCAN_CODES: [u16; KEY_COUNT] = [
     0x01A8, 0x00E1, 0x0170, 0x0168, 0x0162, 0x0161,
@@ -70,4 +78,12 @@ mod tests {
         assert_eq!(from_code(0x01FF), None);
         assert_eq!(scan(0, 0), None);
     }
+
+    #[test]
+    fn gpioa_bit9_is_standalone_active_low_input() {
+        assert!(auxiliary_active_low(0));
+        assert!(!auxiliary_active_low(0x0200));
+        assert!(auxiliary_active_low(0xFDFF));
+    }
+
 }
