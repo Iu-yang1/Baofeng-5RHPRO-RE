@@ -75,6 +75,9 @@ pub const PANEL_SPI2: PanelPins = PanelPins {
 
 /// Standalone active-low bit sampled by original keypad function.
 /// Not yet attributed to PTT or a physical keypad legend.
+/// Separate active-low GPIOA bit10 sampled by OEM UI key-handling paths.
+pub const OEM_UI_GPIOA10_INPUT: Pin = Pin { port: Port::A, bit: 10 };
+
 pub const AUXILIARY_KEY_GPIO: Pin = Pin { port: Port::A, bit: 9 };
 
 pub const KEYPAD_PORT: Port = Port::C;
@@ -137,6 +140,13 @@ mod tests {
         assert_eq!(OEM_BOOT_PD2.port, Port::D);
         assert_eq!(OEM_STACK_TOP_OBSERVED, 0x20011308);
         assert_eq!(OEM_JOURNAL_MARKER, 0x0807F800);
+    }
+
+
+    #[test]
+    fn second_ui_input_is_independent_gpioa10_not_assumed_ptt() {
+        assert_eq!(OEM_UI_GPIOA10_INPUT.mask(), 0x0400);
+        assert_ne!(OEM_UI_GPIOA10_INPUT, AUXILIARY_KEY_GPIO);
     }
 
 }
