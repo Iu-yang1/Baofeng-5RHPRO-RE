@@ -11,6 +11,8 @@ import struct
 from v2_pll_runtime_order import reachable_calls
 DATA = {
 "v2": ("firmware/BF_5RH_501_v2_0_9.dat", [
+("frequency_table_init",0x08012E10,0x08012E92),
+("rf_selector",0x0800A300,0x0800A3E0),
 ("fd_tune",0x08005EA0,0x08005F10),
 ("fd_state",0x0800AFB0,0x0800B160),
 ("rf_write_chain",0x0800A3E0,0x0800A510),
@@ -27,7 +29,7 @@ DATA = {
 ("key_decode",0x0800B0FC,0x0800B21C),
 ]),
 }
-V2_TARGETS=[0x08005EC6,0x08005E8C,0x08005EE0,0x0800DDB8,0x0800B0A0,0x08010998,0x08010A2A,0x0801530C,0x0800752C,0x0800755C]
+V2_TARGETS=[0x0800AFE4,0x0800A428,0x08012E10,0x08005EC6,0x08005E8C,0x08005EE0,0x0800DDB8,0x0800B0A0,0x08010998,0x08010A2A,0x0801530C,0x0800752C,0x0800755C]
 def main():
  for version,(path,regions) in DATA.items():
   p=decoded_payload(Path(path).read_bytes())
