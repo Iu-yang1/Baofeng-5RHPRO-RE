@@ -136,6 +136,7 @@ pub const GNSS_UART: UartConfiguration = UartConfiguration {
 
 #[cfg(test)]
 mod tests {
+    extern crate std;
     use super::*;
 
     #[test]
